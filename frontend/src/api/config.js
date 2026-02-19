@@ -4,8 +4,13 @@ import axios from 'axios';
 // In Vite, import.meta.env.PROD is true during production build
 const IS_PROD = import.meta.env.PROD;
 
-// If you want to force a specific URL in production, set VITE_API_URL in Render
-const API_URL = import.meta.env.VITE_API_URL || (IS_PROD ? 'https://fake-review-detection-backend.onrender.com' : '/api');
+// Render provides just the hostname (e.g., app.onrender.com) via 'host' property
+let envApiUrl = import.meta.env.VITE_API_URL;
+if (envApiUrl && !envApiUrl.startsWith('http')) {
+    envApiUrl = `https://${envApiUrl}`;
+}
+
+const API_URL = envApiUrl || (IS_PROD ? 'https://fake-review-backend.onrender.com' : '/api');
 
 console.log(`API Configuration: ${IS_PROD ? 'Production' : 'Development'} Mode`);
 console.log(`Base URL: ${API_URL}`);

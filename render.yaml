@@ -27,7 +27,7 @@ services:
         fromService:
           type: web
           name: fake-review-backend
-          property: url
+          property: host
     plan: free
 
 databases:
