@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Globe, PlayCircle, Download, ShieldCheck, BarChart2, PieChart as PieIcon } from 'lucide-react';
+import client from '../api/config';
+import { Globe, PlayCircle, Download, ShieldCheck, BarChart2, PieChart as PieIcon, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import LieDetectionCard from '../components/LieDetectionCard';
+import WritingStyleCard from '../components/WritingStyleCard';
 
 export default function UrlAnalysis() {
     const [url, setUrl] = useState('');
@@ -9,6 +11,7 @@ export default function UrlAnalysis() {
     const [reviews, setReviews] = useState([]);
     const [results, setResults] = useState(null);
     const [csvFilename, setCsvFilename] = useState(null);
+    const [selectedReview, setSelectedReview] = useState(null);
 
     useEffect(() => {
         console.log("UrlAnalysis Mounted");
@@ -20,7 +23,7 @@ export default function UrlAnalysis() {
         setResults(null);
         setCsvFilename(null);
         try {
-            const res = await axios.post('http://localhost:5001/api/scrape', { url });
+            const res = await client.post('/api/scrape', { url });
             setReviews(res.data.reviews || []);
             if (res.data.csv_saved) {
                 setCsvFilename(res.data.csv_saved);
@@ -39,7 +42,7 @@ export default function UrlAnalysis() {
         if (reviews.length === 0) return;
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5001/api/predict_bulk', { reviews });
+            const res = await client.post('/api/predict_bulk', { reviews });
             setResults(res.data.results);
         } catch (err) {
             console.error(err);
@@ -51,6 +54,29 @@ export default function UrlAnalysis() {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadReport = async () => {
+        if (!results) return;
+        try {
+            const avgTrust = results.reduce((acc, r) => acc + (r.trust_score || 0), 0) / (results.length || 1);
+
+            const res = await client.post('/api/report/generate', {
+                title: "TrustLens Analysis Report",
+                url: url,
+                trust_score: Math.round(avgTrust),
+                reviews: results,
+                keywords: ["quality", "shipping", "value"] // Placeholder for now
+            });
+
+            if (res.data.filename) {
+                // Open download link
+                window.open(`/api/download/${res.data.filename}`, '_blank');
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to generate report.");
+        }
     };
 
     // Prepare Chart Data
@@ -155,7 +181,7 @@ export default function UrlAnalysis() {
                                 </button>
                                 {csvFilename && (
                                     <button
-                                        onClick={() => window.open(`http://localhost:5001/api/download/${csvFilename}`, '_blank')}
+                                        onClick={() => window.open(`/api/download/${csvFilename}`, '_blank')}
                                         className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 flex items-center gap-2"
                                     >
                                         <Download className="h-4 w-4" /> Download CSV
@@ -293,8 +319,15 @@ export default function UrlAnalysis() {
                                         ))}
                                     </div>
                                 </div>
-                                <button onClick={handlePrint} className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium print:hidden">
-                                    <Download className="h-4 w-4" /> Export Enterprise Report
+                                <button onClick={handleDownloadReport} className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium print:hidden">
+                                    <FileText className="h-4 w-4" />download Pdf
+
+
+
+
+
+
+
                                 </button>
                             </div>
                             <div className="overflow-x-auto">
@@ -307,6 +340,7 @@ export default function UrlAnalysis() {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prediction</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trust Score</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sentiment</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -324,6 +358,14 @@ export default function UrlAnalysis() {
                                                     {row.trust_score ? row.trust_score.toFixed(1) : 'N/A'}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">{(row.sentiment || 0).toFixed(2)}</td>
+                                                <td className="px-6 py-4 text-sm">
+                                                    <button
+                                                        onClick={() => setSelectedReview(row)}
+                                                        className="text-purple-600 hover:text-purple-900 font-medium text-xs border border-purple-200 px-3 py-1 rounded bg-purple-50 hover:bg-purple-100"
+                                                    >
+                                                        Analyze Lies
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                         {getFilteredResults().length === 0 && (
@@ -335,6 +377,41 @@ export default function UrlAnalysis() {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Lie Analysis Modal */}
+                {selectedReview && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setSelectedReview(null)}>
+                        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                                <h3 className="text-xl font-bold font-serif text-gray-800">Advanced Lie Analysis</h3>
+                                <button onClick={() => setSelectedReview(null)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-700 italic border-l-4 border-blue-400">
+                                    "{selectedReview.text}"
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <LieDetectionCard data={selectedReview.lie_detection} />
+                                    <WritingStyleCard data={selectedReview.author_dna} />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 text-center">
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <div className="text-xs text-gray-500 uppercase tracking-wide">Prediction</div>
+                                        <div className={`text-lg font-bold ${['Fake', 'CG'].includes(selectedReview.label) ? 'text-red-600' : 'text-green-600'}`}>
+                                            {selectedReview.label}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <div className="text-xs text-gray-500 uppercase tracking-wide">Trust Score</div>
+                                        <div className="text-lg font-bold text-blue-600">{selectedReview.trust_score}%</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,39 @@
+services:
+  # Backend (Flask)
+  - type: web
+    name: fake-review-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: RENDER
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reviews-db
+          property: connectionString
+    plan: free
+
+  # Frontend (React/Vite)
+  - type: static
+    name: fake-review-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    publishDir: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: fake-review-backend
+          property: url
+    plan: free
+
+databases:
+  - name: reviews-db
+    plan: free
+    databaseName: reviews
+    user: fake_review_user
+
+version: "1"

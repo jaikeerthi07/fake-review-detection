@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     ReferenceLine, Cell
@@ -26,7 +26,7 @@ export default function PerformanceAnalysis() {
     const fetchFeatures = async (model) => {
         setLoadingFeatures(true);
         try {
-            const res = await axios.get(`http://localhost:5001/api/model/features?model=${model}`);
+            const res = await client.get(`/api/model/features?model=${model}`);
             if (res.data.features) {
                 // Transform for Recharts
                 // Sort by absolute impact
@@ -46,8 +46,9 @@ export default function PerformanceAnalysis() {
             <h1 className="text-3xl font-bold text-gray-800 text-center font-serif mb-8">Model Performance Analysis</h1>
 
             {/* 1. Model Accuracy Comparison */}
-            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="text-xl font-semibold mb-6 text-center text-gray-700">Model Accuracy Comparison</h3>
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+                <h3 className="text-xl font-bold mb-6 text-center text-gray-800 tracking-tight">Model Performance Benchmarks</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -71,9 +72,10 @@ export default function PerformanceAnalysis() {
             </div>
 
             {/* 2. Feature Impact Overview */}
-            <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-gray-700">Feature Impact Overview</h3>
+                    <h3 className="text-xl font-bold text-gray-800 tracking-tight">Feature Impact Analysis</h3>
                     <select
                         value={selectedModel}
                         onChange={(e) => setSelectedModel(e.target.value)}

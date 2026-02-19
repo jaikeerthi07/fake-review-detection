@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import { ArrowRight, Table } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,7 +11,7 @@ export default function Preview() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://localhost:5001/api/preview');
+                const res = await client.get('/api/preview');
                 if (res.data.data.length > 0) {
                     setData(res.data.data);
                     setColumns(Object.keys(res.data.data[0]));

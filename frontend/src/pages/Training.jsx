@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import { Play, CheckCircle, BarChart as IconBarChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,7 +14,7 @@ export default function Training() {
     const startTraining = async () => {
         setTraining(true);
         try {
-            const res = await axios.post('http://localhost:5001/api/train', {
+            const res = await client.post('/api/train', {
                 text_column: 'review_text',
                 label_column: 'label'
             });
@@ -69,7 +69,7 @@ export default function Training() {
                                             const formData = new FormData();
                                             formData.append('file', file);
                                             try {
-                                                const res = await axios.post('http://localhost:5001/api/upload', formData);
+                                                const res = await client.post('/api/upload', formData);
                                                 alert(`Dataset uploaded: ${res.data.filename}`);
                                                 setDatasetUploaded(true);
                                             } catch (err) {

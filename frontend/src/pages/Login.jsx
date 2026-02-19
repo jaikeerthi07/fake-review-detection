@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 
@@ -14,12 +14,14 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:5001/api/auth/login', formData);
+            const res = await client.post('/api/auth/login', formData);
             localStorage.setItem('token', res.data.access_token);
             localStorage.setItem('username', res.data.username);
             window.location.href = '/'; // Force refresh to update Navbar state
         } catch (err) {
-            alert(err.response?.data?.error || 'Login failed');
+            console.error("Login Error:", err);
+            const errorMsg = err.response?.data?.error || err.message || 'Login failed';
+            alert(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
         }
     };
 

@@ -2,39 +2,46 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-import numpy as np
 import os
-import pickle
 import json
 import time
 import re
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from textblob import TextBlob
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import LinearSVC
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, confusion_matrix
 import requests
 from bs4 import BeautifulSoup
 from models import db, Review, User
+from lie_detector import LieDetector 
+from author_dna import AuthorDNA # Added AuthorDNA import # Added LieDetector import
 
 # Initialize App
 app = Flask(__name__)
 CORS(app) # Enable CORS for React Frontend
 
 # Configuration
-UPLOAD_FOLDER = 'uploads'
-MODEL_FOLDER = 'model/artifacts'
+IS_VERCEL = os.environ.get('VERCEL') == '1'
+IS_RENDER = os.environ.get('RENDER') == '1'
+
+if IS_VERCEL or IS_RENDER:
+    # Production / Serverless Environment
+    UPLOAD_FOLDER = '/tmp/uploads'
+    MODEL_FOLDER = '/tmp/model/artifacts' 
+    
+    # Database Configuration
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:////tmp/reviews.db'
+else:
+    # Local Development
+    UPLOAD_FOLDER = 'uploads'
+    MODEL_FOLDER = 'model/artifacts'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'super-secret-key-change-this' # Change in production
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-key-change-this')
 jwt = JWTManager(app)
 
 # Ensure directories exist
@@ -55,6 +62,7 @@ def load_models():
     """Load models from disk on startup if available"""
     global TRAINED_MODELS
     try:
+        import pickle
         # Load SVM (Default)
         with open(f'{MODEL_FOLDER}/svm_pipeline.pkl', 'rb') as f:
             TRAINED_MODELS['SVM'] = pickle.load(f)
@@ -87,48 +95,79 @@ def load_latest_dataset():
 load_models()
 load_latest_dataset()
 
+# Initialize Analyzers
+lie_detector = LieDetector()
+author_dna = AuthorDNA()
+
 # --- API Endpoints ---
 
 @app.route('/api/auth/register', methods=['POST'])
 def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({'error': 'Username and password required'}), 400
-    
-    if User.query.filter_by(username=username).first():
-        return jsonify({'error': 'Username already exists'}), 400
-    
-    user = User(username=username)
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-    
-    return jsonify({'message': 'User registered successfully'}), 201
-
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password', 'default') # Optional password
-    
-    if not username:
-        return jsonify({'error': 'Username required'}), 400
-    
-    user = User.query.filter_by(username=username).first()
-    
-    # Auto-register if user doesn't exist
-    if not user:
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password required'}), 400
+        
+        if User.query.filter_by(username=username).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
         user = User(username=username)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-    
-    # Always allow login (bypass password check)
-    access_token = create_access_token(identity=username)
-    return jsonify({'access_token': access_token, 'username': username}), 200
+        
+        return jsonify({'message': 'User registered successfully'}), 201
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f"Register Error: {str(e)}", 'trace': traceback.format_exc()}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password', 'default') # Optional password
+        
+        print(f"Login attempt for user: {username}")
+        print(f"DB URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        if not username:
+            return jsonify({'error': 'Username required'}), 400
+        
+        # Ensure DB tables exist (Safe-guard for Vercel cold starts)
+        try:
+            with app.app_context():
+                db.create_all()
+                print("DB tables checked/created.")
+        except Exception as db_e:
+            print(f"DB Creation Failed: {db_e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f"Database Init Failed: {str(db_e)}"}), 500
+
+        user = User.query.filter_by(username=username).first()
+        
+        # Auto-register if user doesn't exist
+        if not user:
+            print(f"Creating new user: {username}")
+            user = User(username=username)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            print("User created.")
+        
+        # Always allow login (bypass password check)
+        access_token = create_access_token(identity=username)
+        return jsonify({'access_token': access_token, 'username': username}), 200
+    except Exception as e:
+        print(f"General Login Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f"Login Error: {str(e)}", 'trace': traceback.format_exc()}), 500
 
 @app.route('/api/upload', methods=['POST'])
 def upload_dataset():
@@ -147,6 +186,7 @@ def upload_dataset():
     
     # Peek at columns
     try:
+        import pandas as pd
         df = pd.read_csv(filepath)
         columns = df.columns.tolist()
         return jsonify({'message': 'File uploaded successfully', 'columns': columns, 'filename': filename})
@@ -160,6 +200,7 @@ def preview_data():
         return jsonify({'error': 'No dataset uploaded'}), 404
     
     try:
+        import pandas as pd
         df = pd.read_csv(CURRENT_DATASET_PATH)
         preview = df.head(10).fillna('').to_dict(orient='records')
         return jsonify({'data': preview, 'total_rows': len(df)})
@@ -179,6 +220,17 @@ def train_models():
         return jsonify({'error': 'No dataset uploaded'}), 400
 
     try:
+        import pandas as pd
+        import pickle
+        from sklearn.model_selection import train_test_split
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.svm import LinearSVC
+        from sklearn.naive_bayes import MultinomialNB
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import Pipeline
+        from sklearn.calibration import CalibratedClassifierCV
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
+
         df = pd.read_csv(CURRENT_DATASET_PATH)
         if text_col not in df.columns or label_col not in df.columns:
             return jsonify({'error': f'Columns {text_col} or {label_col} not found'}), 400
@@ -281,7 +333,14 @@ def predict():
     avg_real_prob = real_prob_sum / count_models if count_models > 0 else 0
     trust_score = round(avg_real_prob * 100, 2)
     
+    # Lie Detection Analysis
+    lie_analysis = lie_detector.analyze(text)
+    
+    # Author DNA Analysis
+    dna_analysis = author_dna.analyze(text)
+
     # Sentiment Analysis
+    from textblob import TextBlob
     sentiment = TextBlob(text).sentiment.polarity
     
     # Save to History
@@ -302,7 +361,12 @@ def predict():
         'sentiment': sentiment,
         'model_used': model_name,
         'trust_score': trust_score,
-        'consensus': model_predictions
+        'model_used': model_name,
+        'trust_score': trust_score,
+        'consensus': model_predictions,
+        'consensus': model_predictions,
+        'lie_detection': lie_analysis,
+        'author_dna': dna_analysis
     })
 
 @app.route('/api/predict_bulk', methods=['POST'])
@@ -331,6 +395,7 @@ def predict_bulk():
             prediction = model.predict([text])[0]
             proba = model.predict_proba([text])[0]
             confidence = float(max(proba))
+            from textblob import TextBlob
             sentiment = TextBlob(text).sentiment.polarity
             
             # Trust Score (Simplified for bulk: use selected model's Real prob)
@@ -340,12 +405,20 @@ def predict_bulk():
             else:
                  trust_score = 50.0 # Fallback
             
+            # Lie Detection Analysis
+            lie_analysis = lie_detector.analyze(text)
+            
+            # Author DNA Analysis
+            dna_analysis = author_dna.analyze(text)
+
             result = {
                 'text': text,
                 'label': str(prediction),
                 'confidence': confidence,
                 'sentiment': sentiment,
-                'trust_score': round(trust_score, 2)
+                'trust_score': round(trust_score, 2),
+                'lie_detection': lie_analysis,
+                'author_dna': dna_analysis
             }
             # Merge metadata (date, rating, author)
             result.update({k: v for k, v in metadata.items() if k != 'text'})
@@ -460,36 +533,60 @@ def scrape_reviews():
             
             # Target standard Amazon review elements
             review_elements = soup.select('div[data-hook="review"]')
+            
+            # Fallback if standard hook is missing (common in some locales/layouts)
+            if not review_elements:
+                print("Standard 'review' hook not found. Trying 'customer_review' ID...")
+                review_elements = soup.select('div[id^="customer_review"]')
+                
+            print(f"Found {len(review_elements)} review elements.")
+            
             reviews = []
             
             for review in review_elements:
+                # Text
                 body = review.select_one('span[data-hook="review-body"]')
-                if body:
-                    text = body.get_text().strip()
-                review_text_element = review.find('span', {'data-hook': 'review-body'})
-                if not review_text_element:
-                    continue # Skip if no review body
-                review_text = review_text_element.text.strip()
+                if not body:
+                    continue
+                    
+                review_text = body.get_text().strip()
                 if not review_text:
-                    continue # Skip if text is empty
+                    continue 
+
+                # Title
+                title = "No Title"
+                title_el = review.select_one('a[data-hook="review-title"]')
+                if title_el:
+                    title = title_el.get_text().strip()
                 
-                # Try to extract rating
+                # Rating
                 rating = None
                 try:
-                    rating_str = review.find('i', {'data-hook': 'review-star-rating'}).text
-                    rating = float(rating_str.split(' ')[0])
-                except: pass
+                    rating_el = review.select_one('i[data-hook="review-star-rating"]') or \
+                                review.select_one('i[data-hook="cmps-review-star-rating"]')
+                    if rating_el:
+                        rating_text = rating_el.get_text().strip() # "4.0 out of 5 stars"
+                        rating = float(rating_text.split(' ')[0])
+                except Exception as e:
+                    print(f"Error parsing rating: {e}")
                 
-                # Try to extract date
+                # Date
                 date_str = None
                 try:
-                    date_text = review.find('span', {'data-hook': 'review-date'}).text
-                    # Format: "Reviewed in the United States on January 1, 2024"
-                    date_str = date_text.split(' on ')[-1]
-                except: pass
+                    date_el = review.select_one('span[data-hook="review-date"]')
+                    if date_el:
+                        date_text = date_el.get_text().strip()
+                        # Format: "Reviewed in the United States on January 1, 2024"
+                        if ' on ' in date_text:
+                            date_str = date_text.split(' on ')[-1]
+                        else:
+                            date_str = date_text # Fallback
+                except Exception as e:
+                    print(f"Error parsing date: {e}")
 
                 reviews.append({
                     'text': review_text,
+                    'title': title,
                     'rating': rating,
                     'date': date_str,
                     'source': 'Amazon (Fallback)'
@@ -541,8 +638,10 @@ def save_csv(reviews):
     
     # Handle list of dicts or list of strings
     if reviews and isinstance(reviews[0], dict):
+        import pandas as pd
         df = pd.DataFrame(reviews)
     else:
+        import pandas as pd
         df = pd.DataFrame({'text': reviews})
         
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -582,6 +681,7 @@ def get_model_features():
              return jsonify({'error': 'Model does not support feature extraction (no coefficients)'}), 400
              
         feature_names = vectorizer.get_feature_names_out()
+        import numpy as np
         coefs = classifier.coef_[0]
         
         # Get top 10 positive (Fake) and top 10 negative (Real)
@@ -608,6 +708,8 @@ def get_analytics():
         return jsonify({'error': 'No dataset uploaded'}), 400
         
     try:
+        import pandas as pd
+        from textblob import TextBlob
         df = pd.read_csv(CURRENT_DATASET_PATH)
         # Assume columns 'text', 'label', 'rating' exist or try to find them
         text_col = next((c for c in df.columns if 'text' in c.lower() or 'review' in c.lower()), 'text')
@@ -692,11 +794,36 @@ def get_analytics():
             except Exception as e:
                 print(f"Error inferring ratings: {e}")
 
+        # 5. Sentiment Trend
+        sentiment_trend = []
+        date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()), None)
+        
+        if date_col:
+            try:
+                # Ensure date column is datetime
+                df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+                # Drop invalid dates
+                temp_df = df.dropna(subset=[date_col])
+                
+                # Calculate polarity if not already done
+                if 'polarity' not in temp_df.columns:
+                     temp_df['polarity'] = temp_df[text_col].apply(lambda x: TextBlob(str(x)).sentiment.polarity)
+                
+                # Group by date (daily) and take mean sentiment
+                trend = temp_df.groupby(temp_df[date_col].dt.strftime('%Y-%m-%d'))['polarity'].mean().reset_index()
+                trend.columns = ['date', 'sentiment']
+                sentiment_trend = trend.to_dict(orient='records')
+                # Sort by date
+                sentiment_trend.sort(key=lambda x: x['date'])
+            except Exception as e:
+                print(f"Error computing trend: {e}")
+
         return jsonify({
             'authenticity': auth_dist,
             'vocabulary_richness': avg_richness,
             'sentence_distribution': sent_dist,
-            'rating_distribution': rating_auth_dist
+            'rating_distribution': rating_auth_dist,
+            'sentiment_trend': sentiment_trend
         })
         
     except Exception as e:
@@ -726,6 +853,33 @@ def download_file(filename):
         return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename), as_attachment=True)
     except Exception as e:
         return jsonify({'error': str(e)}), 404
+
+@app.route('/api/report/generate', methods=['POST'])
+def generate_pdf_report():
+    data = request.json
+    
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        
+    try:
+        from report_generator import generate_report
+        
+        # Ensure uploads folder exists
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+            
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"TrustLens_Audit_{timestamp}.pdf"
+        
+        filepath = generate_report(data, filename)
+        
+        # Return the filename so frontend can request download
+        return jsonify({'filename': filename, 'message': 'Report generated successfully'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f"Report generation failed: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

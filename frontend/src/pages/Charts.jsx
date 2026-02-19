@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    PieChart, Pie, Cell, AreaChart, Area
+    PieChart, Pie, Cell, AreaChart, Area,
+    LineChart, Line
 } from 'recharts';
 
 export default function Charts() {
@@ -13,7 +14,7 @@ export default function Charts() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const res = await axios.get('http://localhost:5001/api/analytics');
+                const res = await client.get('/api/analytics');
                 setData(res.data);
                 setLoading(false);
             } catch (err) {
@@ -51,8 +52,9 @@ export default function Charts() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* 1. Review Authenticity */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-semibold mb-4 text-center">Review Authenticity</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-400 to-green-600"></div>
+                    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">Review Authenticity</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -78,8 +80,9 @@ export default function Charts() {
                 </div>
 
                 {/* 2. Vocabulary Richness */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-center items-center">
-                    <h3 className="text-lg font-semibold mb-4">Vocabulary Richness</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col justify-center items-center relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8"></div>
+                    <h3 className="text-lg font-bold mb-4 text-gray-800 z-10">Vocabulary Richness</h3>
                     <div className="text-5xl font-bold text-blue-600 mb-2">
                         {((data.vocabulary_richness || 0) * 100).toFixed(1)}%
                     </div>
@@ -92,8 +95,9 @@ export default function Charts() {
                 </div>
 
                 {/* 3. Sentence Count Distribution */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-semibold mb-4 text-center">Sentence Count Distribution</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden hover:shadow-xl transition-all duration-300">
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-indigo-500"></div>
+                    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">Sentence Count Distribution</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
@@ -111,8 +115,9 @@ export default function Charts() {
                 </div>
 
                 {/* 4. Rating vs Authenticity Distribution */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-semibold mb-4 text-center">Rating vs Review Authenticity</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden hover:shadow-xl transition-all duration-300">
+                    <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-orange-400 to-red-500"></div>
+                    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">Rating vs Review Authenticity</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={ratingData}>
@@ -128,6 +133,28 @@ export default function Charts() {
                     </div>
                 </div>
             </div>
+
+            {/* 5. Sentiment Trend (Enterprise Feature) */}
+            {data.sentiment_trend && data.sentiment_trend.length > 0 && (
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8">
+                    <h3 className="text-lg font-semibold mb-4 text-center">Sentiment Over Time (Enterprise)</h3>
+                    <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={data.sentiment_trend}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis domain={[-1, 1]} />
+                                <Tooltip />
+                                <Legend />
+                                <Line type="monotone" dataKey="sentiment" stroke="#8884d8" name="Average Sentiment" strokeWidth={2} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Preview from './pages/Preview';
@@ -23,22 +22,6 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-
-  useEffect(() => {
-    // Axios Interceptor to add Token
-    const interceptor = axios.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    return () => axios.interceptors.request.eject(interceptor);
-  }, []);
 
   return (
     <Router>

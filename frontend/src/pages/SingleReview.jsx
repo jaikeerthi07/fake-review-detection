@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import client from '../api/config';
 import { Search, AlertTriangle, CheckCircle, BarChart as IconBarChart, PieChart as IconPieChart, ShieldCheck, Activity, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import LieDetectionCard from '../components/LieDetectionCard';
+import WritingStyleCard from '../components/WritingStyleCard';
 
 const MODELS = ['SVM', 'NaiveBayes', 'LogisticRegression'];
 
@@ -15,7 +17,7 @@ export default function SingleReview() {
         if (!text) return;
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5001/api/predict', {
+            const res = await client.post('/api/predict', {
                 text,
                 model
             });
@@ -126,6 +128,12 @@ export default function SingleReview() {
                                 <div className="absolute text-2xl font-bold text-gray-800">{result.trust_score}</div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* NEW: Lie Detection & Author DNA */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <LieDetectionCard data={result.lie_detection} />
+                        <WritingStyleCard data={result.author_dna} />
                     </div>
 
                     {/* Consensus & Charts */}
