@@ -28,7 +28,6 @@ services:
           type: web
           name: fake-review-backend
           property: host
-    plan: free
 
 databases:
   - name: reviews-db
