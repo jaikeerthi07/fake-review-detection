@@ -1,0 +1,42 @@
+{
+  "reviewTitle": "Outstanding",
+  "reviewDescription": "I bought this 2020 MacBook Air (8 GB RAM, 256 GB SSD storage) to replace a 2014 MacBook Air (4GB RAM, 256 GB SSD storage). I am undeniably a fan of Apple products in general, because they work with little fuss and are built to last (note that my old MacBook Air is more than 7 years old and still working perfectly). Although I've been underwhelmed by some Mac models in recent years, this one is stellar IMHO. Unless you have very heavy system requirements this machine would be an excellent choice. The M1 processor is very impressive, delivering outstanding performance and power/thermal efficiency simultaneously. Battery life is every bit as good as advertised; I can charge overnight and use it all day without plugging in. Connecting USB devices such as external drives will shorten battery life, but that's to be expected. I love the fanless design, which means the machine is absolutely silent at all times, while the thermal efficiency of the M1 chip allows it to remain amazingly cool. In use, this computer feels very fast, especially with apps optimized for Apple processors (as MacOS Big Sur is). Interestingly, Microsoft has been on board early with M1 optimization; the latest Office 365 version is smooth and fast on this machine. I also tried out MS Edge on my new laptop based on a recommendation from another user and have been so pleased with its speed and efficiency that it's my current default browser. The touch ID and Apple Pay capability is a welcome addition. The only cons I see are minor in my opinion. Because RAM is integrated into the M1 processor, post-purchase memory expansion is not possible; if you think you'll need 16 GB of memory that model can be had from the Apple Store. There has been criticism of the fact that this machine has only two ports, which is fair. For me that's not insurmountable; I simply use a USB-C hub to provide additional connectivity. I've read recently that some users have had certain hubs cause problems with their M1 Macs, which appears to be related to battery charging through these hubs. To be on the safe side I use a built-in port for charging and have had no issues. Reading through the relative handful of critical reviews, it looks to me like most (excluding actual defects, which happen with all products) are based on lack of understanding. For example, I saw a large number of reviews complaining that this machine \"has NO USB PORTS!!!\", which is patently false. In fact, its two ports are both USB, they just require a different connector. What these users are looking for is the old USB-A connectors, which this MacBook does not have; however, that's easily fixed by using a USB-A to USB-C converter cable, or with a USB-C hub. USB-A peripherals are gradually disappearing as well, in favor of the new connector. All things considered, I really love this machine. The $899 price (at the time I bought mine) was $100 less than I would have paid at the Apple Store, and I believe I can probably get $200 on eBay for my old MacBook Air (try that with a 7-year-old PC!) leaving me with a total outlay of $699. Considering that I'll almost certainly get 5 or more years use out of this model, I'm very happy with my purchase and would do it again.",
+  "ratingScore": 5,
+  "reviewImages": [],
+  "reviewId": "RGDDNQT5KZNK6",
+  "date": "2021-09-03",
+  "reviewedIn": "Reviewed in the United States on September 3, 2021",
+  "reviewUrl": "https://www.amazon.com/gp/customer-reviews/RGDDNQT5KZNK6",
+  "reviewReaction": "78",
+  "isVerified": true,
+  "isAmazonVine": false,
+  "variant": "Color: Space Gray, Set: 8GB RAM | 256GB SSD",
+  "variantAttributes": [
+    {
+      "key": "Color",
+      "value": "Space Gray"
+    },
+    {
+      "key": "Set",
+      "value": "8GB RAM | 256GB SSD"
+    }
+  ],
+  "userProfileLink": "https://www.amazon.com/gp/profile/amzn1.account.AF2W3THGJBTXD56FIISF2VD3ZHSA/ref=cm_cr_arp_mb_gw_tr",
+  "userId": "AF2W3THGJBTXD56FIISF2VD3ZHSA",
+  "position": 1,
+  "totalCategoryRatings": 21150,
+  "totalCategoryReviews": 2821,
+  "reviewCategoryUrl": "https://www.amazon.com/product-reviews/B08N5KWB9H?pageNumber=1&filterByStar=all_stars&sortBy=helpful&formatType=all_formats&asin=B08N5KWB9H&reftag=cm_cr_arp_d_paging_btm_next_1&scope=reviewsAjax0",
+  "filterByRating": "allStars",
+  "filterByKeyword": null,
+  "productAsin": "B08N5KWB9H",
+  "productOriginalAsin": "B08N5KWB9H",
+  "variantAsin": "B08N5KWB9H",
+  "product": {
+    "price": null,
+    "listPrice": null
+  },
+  "input": "https://www.amazon.com/Apple-iPhone-12-64GB-Blue/dp/B08N5KWB9H",
+  "country": "United States",
+  "countryCode": null
+}

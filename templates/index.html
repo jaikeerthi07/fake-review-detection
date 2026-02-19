@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header>
+    <h1>Analyze <span class="highlight">Reviews</span></h1>
+    <p>Detect deceptive content instantly with our advanced SVM model.</p>
+</header>
+<main>
+    <div class="card input-section">
+        <textarea id="reviewInput" placeholder="Paste the review text here to analyze..."></textarea>
+        <button id="predictBtn" onclick="analyzeReview()">Analyze Review</button>
+    </div>
+
+    <div class="result-box" id="resultBox" style="display: none; margin-top: 2rem;">
+        <h2 id="predictionResult"></h2>
+        <p id="confidenceScore"></p>
+        <div id="explanationSection"
+            style="margin-top: 1rem; text-align: left; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+            <h4 style="color: var(--text-secondary); margin-bottom: 0.5rem;">🔎 Key Influencing Words:</h4>
+            <div id="explanationWords" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeReview() {
+            const review = document.getElementById('reviewInput').value;
+            if (!review) return alert("Please enter a review.");
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ review })
+            });
+
+            const data = await response.json();
+            const resultBox = document.getElementById('resultBox');
+            const resultText = document.getElementById('predictionResult');
+            const confidenceText = document.getElementById('confidenceScore');
+            const explanationDiv = document.getElementById('explanationWords');
+
+            resultText.innerText = data.prediction;
+            resultText.style.color = data.prediction === "Fake" ? "#ef4444" : "#10b981";
+            confidenceText.innerText = `Confidence: ${data.confidence} | Sentiment: ${data.sentiment}`;
+
+            // Explainability
+            explanationDiv.innerHTML = '';
+            if (data.explanation && data.explanation.length > 0) {
+                data.explanation.forEach(word => {
+                    const span = document.createElement('span');
+                    span.innerText = word;
+                    span.style.padding = '4px 8px';
+                    span.style.background = 'rgba(6, 182, 212, 0.2)';
+                    span.style.border = '1px solid var(--accent)';
+                    span.style.borderRadius = '4px';
+                    span.style.color = 'var(--accent)';
+                    span.style.fontSize = '0.9rem';
+                    explanationDiv.appendChild(span);
+                });
+            } else {
+                explanationDiv.innerHTML = '<em style="color: var(--text-secondary)">No specific key words identified.</em>';
+            }
+
+            resultBox.style.display = 'block';
+        }
+    </script>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

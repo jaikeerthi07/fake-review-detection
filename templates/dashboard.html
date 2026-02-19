@@ -1,0 +1,337 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <h1 style="display: flex; align-items: center; gap: 0.5rem;">
+            Trust<span class="highlight">Lens</span> Analytics
+            <span
+                style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);">Pro</span>
+        </h1>
+        <p style="color: var(--text-secondary);">Deep dive analytics into review authenticity patterns.</p>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <div
+            style="background: rgba(255,255,255,0.05); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: var(--text-secondary); font-size: 0.9rem;">Period:</span>
+            <select style="background: transparent; border: none; color: white; font-family: inherit; cursor: pointer;">
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+                <option>All Time</option>
+            </select>
+        </div>
+        <a href="/download_report/pdf" style="text-decoration: none;">
+            <button style="background: rgba(6, 182, 212, 0.1); border: 1px solid var(--accent); color: var(--accent);">
+                <i class="fas fa-file-pdf"></i> PDF Report
+            </button>
+        </a>
+        <a href="/download_report/excel" style="text-decoration: none;">
+            <button style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981;">
+                <i class="fas fa-file-excel"></i> Excel Data
+            </button>
+        </a>
+    </div>
+</header>
+
+<main class="dashboard-grid">
+    <!-- Row 1: Key Metrics -->
+    <div class="card metric-card" style="border-top: 4px solid #3b82f6;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h3>Total Reviews</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top:0.2rem;">Processed by TrustLens
+                </p>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 8px; color: #3b82f6;">
+                <i class="fas fa-layer-group"></i>
+            </div>
+        </div>
+        <div class="metric-value" style="margin-top: 1rem;">{{ total_reviews }}</div>
+    </div>
+
+    <div class="card metric-card" style="border-top: 4px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h3>System Trust Score</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top:0.2rem;">Live Authenticity Rating
+                </p>
+            </div>
+            <div style="background: rgba(6, 182, 212, 0.1); padding: 8px; border-radius: 8px; color: var(--accent);">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+        </div>
+        <div
+            style="position: relative; height: 100px; display: flex; justify-content: center; align-items: center; margin-top: 0.5rem;">
+            <canvas id="trustGauge"></canvas>
+            <div style="position: absolute; font-size: 1.8rem; font-weight: bold; color: var(--accent); bottom: 20px;">
+                {{ trust_score }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card metric-card" style="border-top: 4px solid #8b5cf6;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h3>Model Precision</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top:0.2rem;">SVM Classifier Accuracy
+                </p>
+            </div>
+            <div style="background: rgba(139, 92, 246, 0.1); padding: 8px; border-radius: 8px; color: #8b5cf6;">
+                <i class="fas fa-bullseye"></i>
+            </div>
+        </div>
+        <div class="metric-value" style="margin-top: 1rem;">{{ (metrics.accuracy * 100)|round(1) }}%</div>
+    </div>
+
+    <!-- Row 2: Overall Analysis (New) -->
+    <div class="card"
+        style="grid-column: 1 / -1; background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255,255,255,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-robot" style="color: var(--accent);"></i> AI Executive Summary
+                </h3>
+                <p id="analysisText"
+                    style="margin-top: 1rem; color: #cbd5e1; font-size: 1.05rem; line-height: 1.7; max-width: 90%;">
+                    Based on the analysis of <strong>{{ total_reviews }}</strong> reviews, TrustLens has identified
+                    <span
+                        style="color: #ef4444; font-weight: bold; background: rgba(239, 68, 68, 0.1); padding: 0 4px; border-radius: 4px;">{{
+                        fake_count }} potential fake reviews</span>
+                    and
+                    <span
+                        style="color: #10b981; font-weight: bold; background: rgba(16, 185, 129, 0.1); padding: 0 4px; border-radius: 4px;">{{
+                        genuine_count }} genuine reviews</span>.
+
+                    The aggregated Trust Score stands at <strong>{{ trust_score }}/100</strong>.
+                    {% if trust_score > 80 %}
+                    <br><br>
+                    <strong style="color: #10b981;">Assessment:</strong> The reviews indicate a highly authentic user
+                    base. Minimal deceptive patterns detected.
+                    {% elif trust_score > 50 %}
+                    <br><br>
+                    <strong style="color: #f59e0b;">Assessment:</strong> Mixed authenticity signals detected. We
+                    recommend manually auditing flagged reviews.
+                    {% else %}
+                    <br><br>
+                    <strong style="color: #ef4444;">Assessment:</strong> CRITICAL WARNING. High velocity of suspicious
+                    activity detected. Immediate review required.
+                    {% endif %}
+                </p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
+                <button onclick="speakReport()"
+                    style="background: var(--accent); color: #000; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;">
+                    <i class="fas fa-volume-up"></i> Listen to Report
+                </button>
+                <div style="text-align: right; font-size: 0.8rem; color: var(--text-secondary);">
+                    Last Updated: Now<br>
+                    Model Version: v2.1.0-Pro
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3: Distribution Charts -->
+    <div class="card chart-card">
+        <h3><i class="fas fa-chart-pie" style="color: var(--text-secondary); margin-right: 0.5rem;"></i>Authenticity
+            Split</h3>
+        <div style="height: 250px; position: relative;">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card chart-card" style="grid-column: span 2;">
+        <h3><i class="fas fa-chart-line" style="color: var(--text-secondary); margin-right: 0.5rem;"></i>Review Volume
+            Trends</h3>
+        <div style="height: 250px;">
+            <canvas id="dailyStatsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Row 3: Model & Trends -->
+    <div class="card chart-card" style="grid-column: span 2;">
+        <h3><i class="fas fa-balance-scale" style="color: var(--text-secondary); margin-right: 0.5rem;"></i>Model
+            Benchmarking</h3>
+        <div style="height: 250px;">
+            <canvas id="modelCompChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card chart-card">
+        <h3><i class="fas fa-th" style="color: var(--text-secondary); margin-right: 0.5rem;"></i>Performance Matrix</h3>
+        <div style="height: 250px;">
+            <canvas id="confusionMatrixChart"></canvas>
+        </div>
+    </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+<script>
+    const metrics = {{ metrics | tojson }};
+    const trustScore = {{ trust_score }};
+    const fakeCount = {{ fake_count }};
+    const genuineCount = {{ genuine_count }};
+    const dailyStats = {{ daily_stats | tojson }};
+    const modelComp = {{ model_comparison | tojson }};
+
+    // Global Defaults
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // 1. Pie Chart
+    new Chart(document.getElementById('pieChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Fake', 'Genuine'],
+            datasets: [{
+                data: [fakeCount, genuineCount],
+                backgroundColor: ['#ef4444', '#10b981'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+            }
+        }
+    });
+
+    // 2. Daily Stats Line Chart
+    new Chart(document.getElementById('dailyStatsChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(dailyStats),
+            datasets: [{
+                label: 'Global Review Volume',
+                data: Object.values(dailyStats),
+                borderColor: '#06b6d4',
+                backgroundColor: (context) => {
+                    const ctx = context.chart.ctx;
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
+                    gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+                    return gradient;
+                },
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#06b6d4',
+                pointBorderColor: '#0f172a',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: { grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', titleColor: '#fff', bodyColor: '#cbd5e1', padding: 10, cornerRadius: 8 } }
+        }
+    });
+
+    // 3. Model Comparison Bar Chart
+    new Chart(document.getElementById('modelCompChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Accuracy', 'Precision', 'Recall'],
+            datasets: [
+                {
+                    label: 'SVM (Production)',
+                    data: [modelComp['SVM (Current)'].Accuracy, modelComp['SVM (Current)'].Precision, modelComp['SVM (Current)'].Recall],
+                    backgroundColor: '#8b5cf6',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Naive Bayes (Baseline)',
+                    data: [modelComp['Naive Bayes'].Accuracy, modelComp['Naive Bayes'].Precision, modelComp['Naive Bayes'].Recall],
+                    backgroundColor: '#475569',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, max: 1 },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { position: 'top', align: 'end', labels: { usePointStyle: true } } }
+        }
+    });
+
+    // 4. Trust Gauge
+    new Chart(document.getElementById('trustGauge'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Trust', 'Risk'],
+            datasets: [{
+                data: [trustScore, 100 - trustScore],
+                backgroundColor: ['#06b6d4', 'rgba(255, 255, 255, 0.05)'],
+                borderWidth: 0,
+                cutout: '85%',
+                circumference: 180,
+                rotation: 270,
+                borderRadius: 10
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false }, legend: { display: false } } }
+    });
+
+    // 5. CM
+    if (metrics.confusion_matrix) {
+        new Chart(document.getElementById('confusionMatrixChart'), {
+            type: 'bar',
+            data: {
+                labels: ['True Real', 'False Fake', 'False Real', 'True Fake'],
+                datasets: [{
+                    label: 'Count',
+                    data: [
+                        metrics.confusion_matrix[0][0],
+                        metrics.confusion_matrix[0][1],
+                        metrics.confusion_matrix[1][0],
+                        metrics.confusion_matrix[1][1]
+                    ],
+                    backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'],
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+        });
+    }
+
+    // Voice Report Function
+    function speakReport() {
+        const text = document.getElementById('analysisText').innerText;
+
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+
+            // Try to set a good voice
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(voice => voice.name.includes('Google US English') || voice.name.includes('Microsoft David')) || voices[0];
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            window.speechSynthesis.cancel(); // Stop any previous
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert("Sorry, your browser does not support text-to-speech.");
+        }
+    }
+</script>
+{% endblock %}

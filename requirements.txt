@@ -1,0 +1,17 @@
+flask
+flask-cors
+flask-jwt-extended
+flask-sqlalchemy
+pandas
+scikit-learn
+nltk
+numpy
+matplotlib
+seaborn
+pickle-mixin
+textblob
+wordcloud
+fpdf
+openpyxl
+requests
+beautifulsoup4
