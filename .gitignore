@@ -20,7 +20,7 @@ dist/
 
 # Project Specific
 uploads/
-model/artifacts/
+# model/artifacts/ removed so models can deploy
 *.log
 *.sqlite
 *.db
