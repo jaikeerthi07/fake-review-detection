@@ -351,22 +351,23 @@ def train_models():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/predict', methods=['POST'])
+@jwt_required(optional=True)
 def predict():
-    data = request.json
-    text = data.get('text')
-    model_name = data.get('model', 'SVM') # Default to SVM
-    
-    if not text: return jsonify({'error': 'No text provided'}), 400
-    
-    # Reload models if they are missing (e.g. after a cold start or if load_models fails)
-    if not TRAINED_MODELS:
-        load_models()
-        
-    if model_name not in TRAINED_MODELS: 
-        available = list(TRAINED_MODELS.keys())
-        return jsonify({'error': f'Model {model_name} not found. Available: {available}. Check if model files exist in {MODEL_FOLDER}'}), 500
-    
     try:
+        data = request.json
+        text = data.get('text', '')
+        model_name = data.get('model', 'SVM') # Default to SVM
+        
+        if not text: return jsonify({'error': 'No text provided'}), 400
+        
+        # Reload models if they are missing
+        if not TRAINED_MODELS:
+            load_models()
+            
+        if model_name not in TRAINED_MODELS: 
+            available = list(TRAINED_MODELS.keys())
+            return jsonify({'error': f'Model {model_name} not found. Available: {available}. Check if model files exist in {MODEL_FOLDER}'}), 500
+        
         model = TRAINED_MODELS[model_name]
         
         # Run selected model
@@ -375,71 +376,74 @@ def predict():
         classes = model.classes_
         probs = {str(c): float(p) for c, p in zip(classes, proba)}
         confidence = float(max(proba))
-    except Exception as e:
-        return jsonify({'error': f'Prediction error: {str(e)}'}), 500
-    
-    # Consensus: Run ALL models
-    consensus_votes = {'Fake': 0, 'Real': 0} # Mapping 'CG'->Fake, 'OR'->Real for clarity output?
-    # Actually let's stick to dataset labels: CG (Fake), OR (Real)
-    model_predictions = {}
-    real_prob_sum = 0
-    count_models = 0
-    
-    for m_name, m in TRAINED_MODELS.items():
+        
+        # Consensus: Run ALL models
+        model_predictions = {}
+        consensus_votes = {'Fake': 0, 'Real': 0}
+        for name, m in TRAINED_MODELS.items():
+            if hasattr(m, 'predict'):
+                pred = m.predict([text])[0]
+                model_predictions[name] = str(pred)
+                vote = 'Real' if pred == 'OR' else 'Fake'
+                consensus_votes[vote] += 1
+        
+        # Trust Score
+        if 'OR' in model.classes_:
+            real_idx = list(model.classes_).index('OR')
+            trust_score = float(proba[real_idx]) * 100
+        else:
+            trust_score = 50.0
+
+        # Lie Detection Analysis
+        lie_analysis = lie_detector.analyze(text)
+        
+        # Author DNA Analysis
+        dna_analysis = author_dna.analyze(text)
+
+        # Sentiment Analysis
+        from textblob import TextBlob
+        sentiment = TextBlob(text).sentiment.polarity
+        
+        # Save to History
         try:
-            p = m.predict([text])[0]
-            model_predictions[m_name] = str(p)
-            
-            # Trust Score Calculation (Sum prob of 'OR' aka Real)
-            p_proba = m.predict_proba([text])[0]
-            if 'OR' in m.classes_:
-                real_idx = list(m.classes_).index('OR')
-                real_prob_sum += p_proba[real_idx]
-            else:
-                 # Fallback if class names differ
-                 real_prob_sum += 0.5 
-            count_models += 1
-        except:
-            pass
+            review = Review(
+                text=text, 
+                label=str(prediction), 
+                confidence=confidence, 
+                sentiment=sentiment, 
+                timestamp=datetime.now()
+            )
+            db.session.add(review)
+            db.session.commit()
+        except Exception as db_err:
+            print(f"Database error: {db_err}")
+            db.session.rollback()
+            # We continue even if DB save fails, just to return the prediction
 
-    avg_real_prob = real_prob_sum / count_models if count_models > 0 else 0
-    trust_score = round(avg_real_prob * 100, 2)
-    
-    # Lie Detection Analysis
-    lie_analysis = lie_detector.analyze(text)
-    
-    # Author DNA Analysis
-    dna_analysis = author_dna.analyze(text)
+        return jsonify({
+            'label': str(prediction),
+            'confidence': confidence,
+            'probs': probs,
+            'sentiment': sentiment,
+            'model_used': model_name,
+            'trust_score': trust_score,
+            'consensus': model_predictions,
+            'lie_detection': lie_analysis,
+            'author_dna': dna_analysis
+        })
 
-    # Sentiment Analysis
-    from textblob import TextBlob
-    sentiment = TextBlob(text).sentiment.polarity
-    
-    # Save to History
-    review = Review(
-        text=text, 
-        label=str(prediction), 
-        confidence=confidence, 
-        sentiment=sentiment, 
-        timestamp=datetime.now()
-    )
-    db.session.add(review)
-    db.session.commit()
-    
-    return jsonify({
-        'label': str(prediction),
-        'confidence': confidence,
-        'probs': probs,
-        'sentiment': sentiment,
-        'model_used': model_name,
-        'trust_score': trust_score,
-        'model_used': model_name,
-        'trust_score': trust_score,
-        'consensus': model_predictions,
-        'consensus': model_predictions,
-        'lie_detection': lie_analysis,
-        'author_dna': dna_analysis
-    })
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"CRITICAL PREDICT ERROR: {error_msg}")
+        return jsonify({
+            'error': str(e),
+            'traceback': error_msg,
+            'env': {
+                'MODEL_FOLDER': MODEL_FOLDER,
+                'TRAINED_MODELS_KEYS': list(TRAINED_MODELS.keys())
+            }
+        }), 500
 
 @app.route('/api/predict_bulk', methods=['POST'])
 def predict_bulk():
