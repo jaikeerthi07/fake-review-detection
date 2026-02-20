@@ -202,6 +202,21 @@ def login():
         traceback.print_exc()
         return jsonify({'error': f"Login Error: {str(e)}", 'trace': traceback.format_exc()}), 500
 
+@app.route('/api/debug/models', methods=['GET'])
+def debug_models():
+    try:
+        if not os.path.exists(MODEL_FOLDER):
+            return jsonify({'error': f'Model folder does not exist: {MODEL_FOLDER}', 'base_dir': BASE_DIR}), 404
+        files = os.listdir(MODEL_FOLDER)
+        return jsonify({
+            'model_folder': MODEL_FOLDER,
+            'files': files,
+            'trained_keys': list(TRAINED_MODELS.keys()),
+            'exists': os.path.exists(MODEL_FOLDER)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/upload', methods=['POST'])
 def upload_dataset():
     global CURRENT_DATASET_PATH
