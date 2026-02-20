@@ -21,7 +21,13 @@ export default function Login() {
         } catch (err) {
             console.error("Login Error:", err);
             const errorMsg = err.response?.data?.error || err.message || 'Login failed';
-            alert(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
+
+            // Debugging helper: if it's a network error, show what URL it tried to hit
+            if (err.message === 'Network Error') {
+                alert(`Network Error! Tried to reach: ${client.defaults.baseURL}/api/auth/login`);
+            } else {
+                alert(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
+            }
         }
     };
 
