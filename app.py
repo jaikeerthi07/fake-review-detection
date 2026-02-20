@@ -101,6 +101,14 @@ author_dna = AuthorDNA()
 
 # --- API Endpoints ---
 
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "online",
+        "message": "Fake Review Detection Backend is running!",
+        "version": "1.0.0"
+    }), 200
+
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     try:
