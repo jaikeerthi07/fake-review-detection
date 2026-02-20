@@ -15,10 +15,14 @@ export default function Navbar() {
                         </Link>
                     </div>
                     <div className="flex items-center space-x-8">
-                        <Link to="/select-method" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Prediction</Link>
-                        <Link to="/analyze/url" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Live Prediction</Link>
-                        <Link to="/performance" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Performance Analysis</Link>
-                        <Link to="/charts" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Charts</Link>
+                        {localStorage.getItem('token') && (
+                            <>
+                                <Link to="/select-method" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Prediction</Link>
+                                <Link to="/analyze/url" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Live Prediction</Link>
+                                <Link to="/performance" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Performance Analysis</Link>
+                                <Link to="/charts" className="hover:text-[#fbbf24] transition-colors text-sm font-medium">Charts</Link>
+                            </>
+                        )}
 
                         {localStorage.getItem('token') ? (
                             <button

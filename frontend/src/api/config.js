@@ -10,7 +10,7 @@ if (envApiUrl && !envApiUrl.startsWith('http')) {
     envApiUrl = `https://${envApiUrl}`;
 }
 
-const API_URL = envApiUrl || (IS_PROD ? 'https://fake-review-backend.onrender.com' : '/api');
+const API_URL = envApiUrl || (IS_PROD ? 'https://fake-review-backend.onrender.com' : '');
 
 console.log(`API Configuration: ${IS_PROD ? 'Production' : 'Development'} Mode`);
 console.log(`Base URL: ${API_URL}`);

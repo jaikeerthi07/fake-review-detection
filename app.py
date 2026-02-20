@@ -595,7 +595,39 @@ def scrape_reviews():
             if reviews:
                  return jsonify({'reviews': reviews, 'count': len(reviews), 'csv_saved': save_csv(reviews)})
             else:
-                 return jsonify({'error': 'No reviews found (Try Manual Entry for guaranteed results)'}), 404
+                 # User requested mixed reviews (real and fake) for demonstration purposes if live scraping fails
+                 print("Applying mock fallback reviews for demonstration...")
+                 mock_reviews = [
+                     {
+                         'text': 'This product is absolutely amazing! I have been using it for weeks and it exceeded all my expectations. Highly recommended!',
+                         'title': 'Great Purchase',
+                         'rating': 5.0,
+                         'date': 'January 10, 2024',
+                         'source': 'Amazon (Mock)'
+                     },
+                     {
+                         'text': 'Terrible quality. Broke after one use. Do not buy this garbage, waste of money.',
+                         'title': 'Do not buy',
+                         'rating': 1.0,
+                         'date': 'February 5, 2024',
+                         'source': 'Amazon (Mock)'
+                     },
+                     {
+                         'text': 'I was paid to write this review. It is a very good product and I love it so much. Please buy it.',
+                         'title': 'Very good product',
+                         'rating': 5.0,
+                         'date': 'March 12, 2024',
+                         'source': 'Amazon (Mock)'
+                     },
+                     {
+                         'text': 'Decent product for the price. Does what it says, but nothing spectacular. Good value overall.',
+                         'title': 'Okay',
+                         'rating': 3.0,
+                         'date': 'April 20, 2024',
+                         'source': 'Amazon (Mock)'
+                     }
+                 ]
+                 return jsonify({'reviews': mock_reviews, 'count': len(mock_reviews), 'csv_saved': save_csv(mock_reviews)})
 
         except Exception as e:
              return jsonify({'error': f"Fallback failed: {str(e)}"}), 500
