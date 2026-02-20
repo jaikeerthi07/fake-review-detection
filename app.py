@@ -14,6 +14,20 @@ from models import db, Review, User
 from lie_detector import LieDetector 
 from author_dna import AuthorDNA # Added AuthorDNA import # Added LieDetector import
 
+import nltk
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab')
+
 # Initialize App
 app = Flask(__name__)
 CORS(app) # Enable CORS for React Frontend
