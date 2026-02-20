@@ -19,14 +19,16 @@ app = Flask(__name__)
 CORS(app) # Enable CORS for React Frontend
 
 # Configuration
-IS_VERCEL = os.environ.get('VERCEL') == '1'
-IS_RENDER = os.environ.get('RENDER') == '1'
+IS_VERCEL = os.environ.get('VERCEL') in ['1', 'true', 'True']
+# Render usually sets RENDER=true
+IS_RENDER = os.environ.get('RENDER') in ['1', 'true', 'True']
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if IS_VERCEL or IS_RENDER:
     # Production / Serverless Environment
     UPLOAD_FOLDER = '/tmp/uploads'
-    # Use repo folder for models, but /tmp for uploads
-    MODEL_FOLDER = 'model/artifacts' 
+    # Use absolute path to the repo folder
+    MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts') 
     
     # Database Configuration
     database_url = os.environ.get('DATABASE_URL')
@@ -36,8 +38,8 @@ if IS_VERCEL or IS_RENDER:
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:////tmp/reviews.db'
 else:
     # Local Development
-    UPLOAD_FOLDER = 'uploads'
-    MODEL_FOLDER = 'model/artifacts'
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -72,20 +74,32 @@ TRAINED_MODELS = {}
 def load_models():
     """Load models from disk on startup if available"""
     global TRAINED_MODELS
+    print(f"Loading models from: {MODEL_FOLDER}...")
     try:
         import pickle
         # Load SVM (Default)
-        with open(f'{MODEL_FOLDER}/svm_pipeline.pkl', 'rb') as f:
-            TRAINED_MODELS['SVM'] = pickle.load(f)
+        svm_path = os.path.join(MODEL_FOLDER, 'svm_pipeline.pkl')
+        if os.path.exists(svm_path):
+            with open(svm_path, 'rb') as f:
+                TRAINED_MODELS['SVM'] = pickle.load(f)
+        else:
+            print(f"Warning: {svm_path} not found")
+
         # Load NB
-        with open(f'{MODEL_FOLDER}/nb_pipeline.pkl', 'rb') as f:
-            TRAINED_MODELS['NaiveBayes'] = pickle.load(f)
+        nb_path = os.path.join(MODEL_FOLDER, 'nb_pipeline.pkl')
+        if os.path.exists(nb_path):
+            with open(nb_path, 'rb') as f:
+                TRAINED_MODELS['NaiveBayes'] = pickle.load(f)
+        
         # Load LR
-        with open(f'{MODEL_FOLDER}/lr_pipeline.pkl', 'rb') as f:
-            TRAINED_MODELS['LogisticRegression'] = pickle.load(f)
-        print("Models loaded successfully.")
+        lr_path = os.path.join(MODEL_FOLDER, 'lr_pipeline.pkl')
+        if os.path.exists(lr_path):
+            with open(lr_path, 'rb') as f:
+                TRAINED_MODELS['LogisticRegression'] = pickle.load(f)
+                
+        print(f"Models loaded successfully. Available models: {list(TRAINED_MODELS.keys())}")
     except Exception as e:
-        print(f"Models not found or error loading: {e}")
+        print(f"CRITICAL: Models error in {MODEL_FOLDER}: {e}")
 
 def load_latest_dataset():
     """Load the most recently uploaded CSV to CURRENT_DATASET_PATH"""
