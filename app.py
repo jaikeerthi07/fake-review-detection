@@ -25,7 +25,8 @@ IS_RENDER = os.environ.get('RENDER') == '1'
 if IS_VERCEL or IS_RENDER:
     # Production / Serverless Environment
     UPLOAD_FOLDER = '/tmp/uploads'
-    MODEL_FOLDER = '/tmp/model/artifacts' 
+    # Use repo folder for models, but /tmp for uploads
+    MODEL_FOLDER = 'model/artifacts' 
     
     # Database Configuration
     database_url = os.environ.get('DATABASE_URL')
@@ -313,16 +314,26 @@ def predict():
     model_name = data.get('model', 'SVM') # Default to SVM
     
     if not text: return jsonify({'error': 'No text provided'}), 400
-    if model_name not in TRAINED_MODELS: return jsonify({'error': 'Model not found'}), 400
     
-    model = TRAINED_MODELS[model_name]
+    # Reload models if they are missing (e.g. after a cold start or if load_models fails)
+    if not TRAINED_MODELS:
+        load_models()
+        
+    if model_name not in TRAINED_MODELS: 
+        available = list(TRAINED_MODELS.keys())
+        return jsonify({'error': f'Model {model_name} not found. Available: {available}. Check if model files exist in {MODEL_FOLDER}'}), 500
     
-    # Run selected model
-    prediction = model.predict([text])[0]
-    proba = model.predict_proba([text])[0]
-    classes = model.classes_
-    probs = {str(c): float(p) for c, p in zip(classes, proba)}
-    confidence = float(max(proba))
+    try:
+        model = TRAINED_MODELS[model_name]
+        
+        # Run selected model
+        prediction = model.predict([text])[0]
+        proba = model.predict_proba([text])[0]
+        classes = model.classes_
+        probs = {str(c): float(p) for c, p in zip(classes, proba)}
+        confidence = float(max(proba))
+    except Exception as e:
+        return jsonify({'error': f'Prediction error: {str(e)}'}), 500
     
     # Consensus: Run ALL models
     consensus_votes = {'Fake': 0, 'Real': 0} # Mapping 'CG'->Fake, 'OR'->Real for clarity output?
@@ -394,7 +405,14 @@ def predict_bulk():
     model_name = data.get('model', 'SVM')
     
     if not reviews: return jsonify({'error': 'No reviews provided'}), 400
-    if model_name not in TRAINED_MODELS: return jsonify({'error': 'Model not found'}), 400
+    
+    # Reload models if missing
+    if not TRAINED_MODELS:
+        load_models()
+        
+    if model_name not in TRAINED_MODELS:
+        available = list(TRAINED_MODELS.keys())
+        return jsonify({'error': f'Model {model_name} not found. Available: {available}. Check files in {MODEL_FOLDER}'}), 500
     
     model = TRAINED_MODELS[model_name]
     results = []

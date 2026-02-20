@@ -24,7 +24,11 @@ export default function SingleReview() {
             setResult(res.data);
         } catch (err) {
             console.error(err);
-            alert("Analysis failed");
+            if (err.message === 'Network Error') {
+                alert(`Network Error! Tried to reach: ${client.defaults.baseURL}/api/predict`);
+            } else {
+                alert(`Analysis failed: ${err.response?.data?.error || err.message}`);
+            }
         } finally {
             setLoading(false);
         }
