@@ -52,6 +52,16 @@ for folder in [UPLOAD_FOLDER, MODEL_FOLDER]:
 db.init_app(app)
 with app.app_context():
     db.create_all()
+    # Execute raw SQL to alter the existing password_hash column length on Render/Postrgres
+    # Since SQLAlchemy create_all() doesn't alter existing tables.
+    try:
+        from sqlalchemy import text
+        db.session.execute(text("ALTER TABLE \"user\" ALTER COLUMN password_hash TYPE VARCHAR(256);"))
+        db.session.commit()
+        print("Successfully ensured password_hash is VARCHAR(256)")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Schema alter skipped or failed: {e}")
 
 # Global variables to hold current state (simple in-memory for demo)
 CURRENT_DATASET_PATH = None
