@@ -26,9 +26,6 @@ console.log(`Base URL: ${API_URL}`);
 
 const client = axios.create({
     baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 // Add a request interceptor to include JWT token if available

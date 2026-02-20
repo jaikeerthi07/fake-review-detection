@@ -73,7 +73,9 @@ export default function Training() {
                                                 alert(`Dataset uploaded: ${res.data.filename}`);
                                                 setDatasetUploaded(true);
                                             } catch (err) {
-                                                alert("Upload failed");
+                                                console.error(err);
+                                                const errorMsg = err.response?.data?.error || "Upload failed. Please try again.";
+                                                alert(`Upload failed: ${errorMsg}`);
                                             }
                                         }
                                     }}
