@@ -220,21 +220,6 @@ def login():
         traceback.print_exc()
         return jsonify({'error': f"Login Error: {str(e)}", 'trace': traceback.format_exc()}), 500
 
-@app.route('/api/debug/models', methods=['GET'])
-def debug_models():
-    try:
-        if not os.path.exists(MODEL_FOLDER):
-            return jsonify({'error': f'Model folder does not exist: {MODEL_FOLDER}', 'base_dir': BASE_DIR}), 404
-        files = os.listdir(MODEL_FOLDER)
-        return jsonify({
-            'model_folder': MODEL_FOLDER,
-            'files': files,
-            'trained_keys': list(TRAINED_MODELS.keys()),
-            'exists': os.path.exists(MODEL_FOLDER)
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/upload', methods=['POST'])
 def upload_dataset():
     global CURRENT_DATASET_PATH
@@ -437,17 +422,8 @@ def predict():
         })
 
     except Exception as e:
-        import traceback
-        error_msg = traceback.format_exc()
-        print(f"CRITICAL PREDICT ERROR: {error_msg}")
-        return jsonify({
-            'error': str(e),
-            'traceback': error_msg,
-            'env': {
-                'MODEL_FOLDER': MODEL_FOLDER,
-                'TRAINED_MODELS_KEYS': list(TRAINED_MODELS.keys())
-            }
-        }), 500
+        print(f"Prediction Error: {e}")
+        return jsonify({'error': 'Prediction failed. Check server logs.'}), 500
 
 @app.route('/api/predict_bulk', methods=['POST'])
 def predict_bulk():
