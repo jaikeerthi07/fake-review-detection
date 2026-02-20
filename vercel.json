@@ -1,25 +1,15 @@
 {
-    "builds": [
+    "buildCommand": "cd frontend && npm install && npm run build",
+    "outputDirectory": "frontend/dist",
+    "framework": "vite",
+    "rewrites": [
         {
-            "src": "app.py",
-            "use": "@vercel/python"
+            "source": "/api/(.*)",
+            "destination": "https://fake-review-backend-tkax.onrender.com/api/$1"
         },
         {
-            "src": "frontend/package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "dist"
-            }
-        }
-    ],
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "app.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "frontend/$1"
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }
