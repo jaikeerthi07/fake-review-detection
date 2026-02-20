@@ -4,15 +4,10 @@ import axios from 'axios';
 // In Vite, import.meta.env.PROD is true during production build
 const IS_PROD = import.meta.env.PROD;
 
-// Render provides the hostname. Sometimes it provides just the service name 'fake-review-backend-tkax', sometimes the full URL.
+// detect the URL from environment variables
 let envApiUrl = import.meta.env.VITE_API_URL;
 
 if (envApiUrl) {
-    // If Render provided just the service name (no domain), append it
-    if (!envApiUrl.includes('.onrender.com') && !envApiUrl.includes('localhost') && !envApiUrl.includes('127.0.0')) {
-        envApiUrl = `${envApiUrl}.onrender.com`;
-    }
-
     // Ensure it has a protocol
     if (!envApiUrl.startsWith('http')) {
         envApiUrl = `https://${envApiUrl}`;
