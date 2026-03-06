@@ -1,0 +1,116 @@
+{
+    "https://www.myntra.com/some-url": {
+        "status": "Success",
+        "platforms": [
+            "Myntra (Synthetic)"
+        ],
+        "ratings": [
+            1.0,
+            1.0,
+            3.0,
+            4.0,
+            1.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            1.0
+        ],
+        "count": 10
+    },
+    "https://www.meesho.com/some-url": {
+        "status": "Success",
+        "platforms": [
+            "Meesho (Synthetic)"
+        ],
+        "ratings": [
+            1.0,
+            2.0,
+            5.0,
+            5.0,
+            5.0,
+            5.0,
+            1.0,
+            1.0,
+            1.0,
+            3.0
+        ],
+        "count": 10
+    },
+    "https://www.ajio.com/some-url": {
+        "status": "Success",
+        "platforms": [
+            "Ajio (Synthetic)"
+        ],
+        "ratings": [
+            1.0,
+            5.0,
+            1.0,
+            5.0,
+            1.0,
+            1.0,
+            5.0,
+            1.0,
+            5.0,
+            5.0
+        ],
+        "count": 10
+    },
+    "https://www.bigbasket.com/some-url": {
+        "status": "Success",
+        "platforms": [
+            "BigBasket (Synthetic)"
+        ],
+        "ratings": [
+            5.0,
+            1.0,
+            1.0,
+            5.0,
+            5.0,
+            2.0,
+            1.0,
+            1.0,
+            3.0,
+            1.0
+        ],
+        "count": 10
+    },
+    "https://www.nykaa.com/some-url": {
+        "status": "Success",
+        "platforms": [
+            "Nykaa (Synthetic)"
+        ],
+        "ratings": [
+            5.0,
+            1.0,
+            3.0,
+            1.0,
+            3.0,
+            5.0,
+            5.0,
+            1.0,
+            1.0,
+            1.0
+        ],
+        "count": 10
+    },
+    "https://www.shopsy.in/some-url": {
+        "status": "Success",
+        "platforms": [
+            "Shopsy (Synthetic)"
+        ],
+        "ratings": [
+            5.0,
+            3.0,
+            1.0,
+            5.0,
+            1.0,
+            2.0,
+            1.0,
+            5.0,
+            2.0,
+            1.0
+        ],
+        "count": 10
+    }
+}

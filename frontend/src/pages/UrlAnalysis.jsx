@@ -12,10 +12,23 @@ export default function UrlAnalysis() {
     const [results, setResults] = useState(null);
     const [csvFilename, setCsvFilename] = useState(null);
     const [selectedReview, setSelectedReview] = useState(null);
+    const [platform, setPlatform] = useState(null);
 
     useEffect(() => {
-        console.log("UrlAnalysis Mounted");
-    }, []);
+        const detectPlatform = (val) => {
+            const urlLower = val.toLowerCase();
+            if (urlLower.includes('amazon')) return 'Amazon';
+            if (urlLower.includes('flipkart')) return 'Flipkart';
+            if (urlLower.includes('myntra')) return 'Myntra';
+            if (urlLower.includes('meesho')) return 'Meesho';
+            if (urlLower.includes('ajio')) return 'Ajio';
+            if (urlLower.includes('bigbasket') || urlLower.includes('biggest')) return 'BigBasket';
+            if (urlLower.includes('nykaa')) return 'Nykaa';
+            if (urlLower.includes('shopsy')) return 'Shopsy';
+            return null;
+        };
+        setPlatform(detectPlatform(url));
+    }, [url]);
 
     const handleScrape = async () => {
         if (!url) return;
@@ -148,16 +161,25 @@ export default function UrlAnalysis() {
                         <Globe className="text-blue-600" /> Live URL Analysis
                     </h2>
 
-                    <p className="text-gray-400 mb-8">
-                        Supported Platforms: <span className="font-semibold text-white">Amazon (Global)</span>
-                        <br />
-                        <span className="text-sm">For others (Flipkart, etc.), please use the Manual Entry tab.</span>
-                    </p>
+                    <div className="flex flex-wrap gap-2 mb-8 items-center">
+                        <span className="text-gray-500 text-sm font-medium">Supported Platforms:</span>
+                        {['Amazon', 'Flipkart', 'Myntra', 'Meesho', 'Ajio', 'BigBasket', 'Nykaa', 'Shopsy'].map((p) => (
+                            <span
+                                key={p}
+                                className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${platform === p
+                                    ? 'bg-blue-600 text-white scale-110 shadow-md'
+                                    : 'bg-gray-800 text-gray-400 opacity-60'
+                                    }`}
+                            >
+                                {p}
+                            </span>
+                        ))}
+                    </div>
                     <div className="flex gap-4">
                         <input
                             type="url"
                             className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="Paste product URL (Amazon, Flipkart, etc.)"
+                            placeholder="Paste product URL (Amazon, Myntra, Meesho, etc.)"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                         />

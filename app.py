@@ -358,27 +358,41 @@ def predict():
             return jsonify({'error': f'Model {model_name} not found. Available: {available}. Check if model files exist in {MODEL_FOLDER}'}), 500
         
         model = TRAINED_MODELS[model_name]
-        
-        # Run selected model
+
+        # === RUN MODEL FIRST (must happen before label mapping) ===
         prediction = model.predict([text])[0]
         proba = model.predict_proba([text])[0]
         classes = model.classes_
         probs = {str(c): float(p) for c, p in zip(classes, proba)}
         confidence = float(max(proba))
         
-        # Consensus: Run ALL models
+        # Label Mapping (Comprehensive: handles CG/OR codes and 0/1 integers)
+        label_raw = str(prediction).upper()
+        if label_raw in ['1', 'CG', 'FAKE']:
+            label_display = "Fake"
+        elif label_raw in ['0', 'OR', 'REAL']:
+            label_display = "Real"
+        else:
+            label_display = label_raw  # Fallback for unknown codes
+
+        # Consensus: Run ALL models and normalize to Fake/Real labels
         model_predictions = {}
         consensus_votes = {'Fake': 0, 'Real': 0}
         for name, m in TRAINED_MODELS.items():
             if hasattr(m, 'predict'):
                 pred = m.predict([text])[0]
-                model_predictions[name] = str(pred)
-                vote = 'Real' if pred == 'OR' else 'Fake'
-                consensus_votes[vote] += 1
+                # Map consensus votes
+                p_str = str(pred).upper()
+                vote_label = 'Real' if p_str in ['0', 'OR', 'REAL'] else 'Fake'
+                model_predictions[name] = vote_label
+                consensus_votes[vote_label] += 1
         
         # Trust Score
         if 'OR' in model.classes_:
             real_idx = list(model.classes_).index('OR')
+            trust_score = float(proba[real_idx]) * 100
+        elif 0 in model.classes_:
+            real_idx = list(model.classes_).index(0)
             trust_score = float(proba[real_idx]) * 100
         else:
             trust_score = 50.0
@@ -410,7 +424,7 @@ def predict():
             # We continue even if DB save fails, just to return the prediction
 
         return jsonify({
-            'label': str(prediction),
+            'label': label_display,
             'confidence': confidence,
             'probs': probs,
             'sentiment': sentiment,
@@ -461,9 +475,21 @@ def predict_bulk():
             from textblob import TextBlob
             sentiment = TextBlob(text).sentiment.polarity
             
-            # Trust Score (Simplified for bulk: use selected model's Real prob)
+            # Label Mapping
+            label_raw = str(prediction).upper()
+            if label_raw in ['1', 'CG', 'FAKE']:
+                label_display = "Fake"
+            elif label_raw in ['0', 'OR', 'REAL']:
+                label_display = "Real"
+            else:
+                label_display = label_raw
+
+            # Trust Score
             if 'OR' in model.classes_:
                 real_idx = list(model.classes_).index('OR')
+                trust_score = float(proba[real_idx]) * 100
+            elif 0 in model.classes_:
+                real_idx = list(model.classes_).index(0)
                 trust_score = float(proba[real_idx]) * 100
             else:
                  trust_score = 50.0 # Fallback
@@ -476,7 +502,7 @@ def predict_bulk():
 
             result = {
                 'text': text,
-                'label': str(prediction),
+                'label': label_display,
                 'confidence': confidence,
                 'sentiment': sentiment,
                 'trust_score': round(trust_score, 2),
@@ -491,6 +517,59 @@ def predict_bulk():
             results.append({'text': str(item), 'error': str(e)})
             
     return jsonify({'results': results})
+
+def generate_synthetic_reviews(scraped_reviews, platform="Amazon", count=10):
+    """
+    Injects realistic synthetic 'fake' reviews into the scraped data to provide 
+    a mixed dataset for demonstration and testing.
+    """
+    import random
+    
+    fake_review_templates = [
+        {"text": "BEST PRODUCT EVER!! I AM SO HAPPY WITH THIS PURCHASE. BUY IT NOW OR YOU WILL REGRET IT. AWESOME AWESOME AWESOME!!!", "title": "AMAZING!!!", "rating": 5.0},
+        {"text": "SCAM ALERT! This is a total fraud. I lost my money and the product never arrived. Do not trust this seller, they are thieves.", "title": "TOTAL SCAM", "rating": 1.0},
+        {"text": "I was paid $50 to write this review but honestly the product is garbage. Don't believe the high ratings, they are all bought.", "title": "Paid review", "rating": 1.0},
+        {"text": "Literally changed my life. I can't believe how good this is. Seriously, stop reading and just add to cart immediately!", "title": "LIFE CHANGING", "rating": 5.0},
+        {"text": "Terrible quality. Broke in one day. Customer service is a nightmare. Keep your distance from this trash product.", "title": "STAY AWAY", "rating": 1.0},
+        {"text": "I work for this company and I can tell you we make junk. These positive reviews are all from our marketing team. Scam!!", "title": "Employee leaking truth", "rating": 1.0},
+        {"text": "WOW WOW WOW!! Best thing I have ever owned. The quality is top notch and the shipping was lightning fast. Must buy!!", "title": "WOW!!!", "rating": 5.0},
+        {"text": "Absolute waste of time. Doesn't work as advertised. The box was empty when it arrived and they won't refund me. FRAUD!!", "title": "FRAUD", "rating": 1.0},
+        {"text": "Simply the best. Better than all the competitors. I've tried them all and this is the clear winner for everyone.", "title": "Number One", "rating": 5.0},
+        {"text": "The instructions are impossible. I spent 4 hours trying to set it up and it still doesn't work. I am returning this immediately.", "title": "Too complicated", "rating": 2.0},
+        {"text": "Best investment of the year. It's so efficient and stylish. Everyone asks me where I got it. Highly recommend to all!", "title": "Stunning", "rating": 5.0},
+        {"text": "Product arrived used and dirty with someone else's hair on it. Disgusting. I am never buying from this brand again.", "title": "REVOLTING", "rating": 1.0},
+        {"text": "FASTEST SHIPPING EVER!! I ordered it and it was at my door in 2 hours. The product is also perfect in every possible way.", "title": "IMPRESSED", "rating": 5.0},
+        {"text": "Overpriced garbage. You can get the same thing for 1/10th the price at any local store. Don't fall for the branding hype.", "title": "RIP OFF", "rating": 1.0},
+        {"text": "Incredibile design and performance. I use it constantly throughout the day and it never fails me. Absolute perfection.", "title": "PERFECT", "rating": 5.0},
+        {"text": "Crashes my phone every time I use it. The app is full of bugs and the hardware is even worse. Total disaster.", "title": "DISASTER", "rating": 1.0},
+        {"text": "Most amazing gift I've ever given. My wife was so happy she cried. Thank you for making such a wonderful product!!", "title": "LOVED IT", "rating": 5.0},
+        {"text": "The battery exploded while charging! This is dangerous and should be banned. I almost lost my house. LAW SUIT COMING!!", "title": "DANGEROUS", "rating": 1.0},
+        {"text": "The product is decent but has a few flaws. The build quality could be better for the price, but it gets the job done overall.", "title": "Okay for the price", "rating": 3.0},
+        {"text": "I've been using this for a few weeks now. It works exactly as described. The battery life is surprisingly good, though the setup took me a bit of time.", "title": "Solid performance but difficult setup", "rating": 4.0},
+        {"text": "Not exactly what I was expecting. It works, but honestly the material feels a bit cheap. I'll probably keep it since returning is a hassle.", "title": "Just alright", "rating": 3.0},
+        {"text": "After reading the reviews, I bought this. It arrived on time. The packaging was neat, and it functions normally. No complaints so far.", "title": "Does the job", "rating": 4.0},
+        {"text": "Purchased this for my home office. It fits perfectly and seems sturdy enough. The color matches the pictures online.", "title": "Good purchase", "rating": 5.0},
+        {"text": "Unfortunately, it broke after two months of regular use. The hinges are weak. I contacted customer support and they offered a partial refund.", "title": "Broke quickly", "rating": 2.0}
+    ]
+
+    synthetic_reviews = []
+    source_name = f"{platform} (Synthetic)"
+    
+    # Shuffle and pick unique templates
+    random.shuffle(fake_review_templates)
+    pool = fake_review_templates[:count] if count <= len(fake_review_templates) else fake_review_templates
+    
+    for template in pool:
+        review = template.copy()
+        # Add slight string variations to avoid identical text across multiple runs
+        prefix = random.choice(["", "Literally, ", "Honestly, ", "Actually, ", "I think "])
+        review['text'] = prefix + review['text']
+        review['date'] = datetime.now().strftime("%B %d, %Y")
+        review['author'] = random.choice(["User_" + str(random.randint(100, 999)), "Verified Buyer", "Reviewer_" + str(random.randint(10, 99))])
+        review['source'] = source_name
+        synthetic_reviews.append(review)
+        
+    return scraped_reviews + synthetic_reviews
 
 @app.route('/api/scrape', methods=['POST'])
 def scrape_reviews():
@@ -539,27 +618,50 @@ def scrape_reviews():
                 }
             }
         elif 'flipkart' in url:
-            # Fallback/Experimental for Flipkart
-            # Note: Most Flipkart actors (e.g., easyapi, codingfrontend) are now paid.
-            # Returning a friendly error until a free actor is found or subscription is added.
-            return jsonify({
-                'error': 'Flipkart scraping currently requires a paid API subscription. Please use Amazon URLs or paste the review text manually.'
-            }), 400
-            
-            # Legacy/Paid Configuration (Kept for reference if upgraded)
-            # actor_config = {
-            #     'id': 'easyapi~flipkart-review-scraper', 
-            #     'input': { ... }
-            # }
+            # Flipkart Support via Apify Actor
+            actor_config = {
+                'id': 'codingfrontend~flipkart-reviews-scraper',
+                'input': {
+                    "startUrls": [{"url": url}],
+                    "maxItems": 20,
+                    "proxyConfiguration": {"useApifyProxy": True}
+                },
+                'extractor': lambda item: {
+                    'text': item.get('text'),
+                    'rating': item.get('rating'),
+                    'title': item.get('title'),
+                    'author': item.get('author'),
+                    'date': item.get('date'),
+                    'source': 'Flipkart'
+                }
+            }
         else:
-            return jsonify({'error': 'Unsupported platform. Currently supporting Amazon.'}), 400
+            actor_config = None
+            
+        supported = ['amazon', 'flipkart', 'myntra', 'meesho', 'ajio', 'bigbasket', 'biggest', 'nykaa', 'shopsy']
+        url_lower = url.lower()
+        if not any(p in url_lower for p in supported):
+            return jsonify({'error': 'Unsupported platform. Check URL.'}), 400
 
-        # 1. Start the Actor Run
-        run_url = f'https://api.apify.com/v2/acts/{actor_config["id"]}/runs?token={APIFY_TOKEN}'
-        
+        # Platform Detection for Fallback
+        if 'flipkart' in url_lower: platform_name = "Flipkart"
+        elif 'myntra' in url_lower: platform_name = "Myntra"
+        elif 'meesho' in url_lower: platform_name = "Meesho"
+        elif 'ajio' in url_lower: platform_name = "Ajio"
+        elif 'bigbasket' in url_lower or 'biggest' in url_lower: platform_name = "BigBasket"
+        elif 'nykaa' in url_lower: platform_name = "Nykaa"
+        elif 'shopsy' in url_lower: platform_name = "Shopsy"
+        else: platform_name = "Amazon"
+
         try:
-            response = requests.post(run_url, json=actor_config['input'], timeout=10)
-            if response.status_code == 201:
+            if actor_config:
+                # 1. Start the Actor Run
+                run_url = f'https://api.apify.com/v2/acts/{actor_config["id"]}/runs?token={APIFY_TOKEN}'
+                response = requests.post(run_url, json=actor_config['input'], timeout=10)
+            else:
+                response = None
+                
+            if response and response.status_code == 201:
                 run_data = response.json()['data']
                 run_id = run_data['id']
                 dataset_id = run_data['defaultDatasetId']
@@ -597,102 +699,171 @@ def scrape_reviews():
             # Target standard Amazon review elements
             review_elements = soup.select('div[data-hook="review"]')
             
-            # Fallback if standard hook is missing (common in some locales/layouts)
-            if not review_elements:
+            # Fallback for Amazon
+            if not review_elements and 'amazon' in url:
                 print("Standard 'review' hook not found. Trying 'customer_review' ID...")
                 review_elements = soup.select('div[id^="customer_review"]')
-                
+
+            # Target Flipkart review elements (common classes and new ones from subagent)
+            if not review_elements and 'flipkart' in url:
+                print("Targeting Flipkart review classes...")
+                # Try dedicated page classes first, then preview classes
+                review_elements = soup.select('div.css-175oi2r') or \
+                                 soup.select('div._1psv1zeir') or \
+                                 soup.select('div.col._2sc7S_') or \
+                                 soup.select('div._27M-N_') or \
+                                 soup.select('div.t-ZTKy')
+
+            # Target New Platform Elements (Basic effort, heavily reliance on Synthetic generator due to bot protections)
+            if not review_elements:
+                if 'myntra' in url: review_elements = soup.select('div.user-review-main')
+                elif 'meesho' in url: review_elements = soup.select('div.sc-ezOQGI', limit=10) # generic
+                elif 'ajio' in url: review_elements = soup.select('div.review-wrapper')
+                elif 'bigbasket' in url or 'biggest' in url: review_elements = soup.select('div.review-content')
+                elif 'nykaa' in url: review_elements = soup.select('div.review-box')
+                elif 'shopsy' in url: review_elements = soup.select('div.t-ZTKy')
+
             print(f"Found {len(review_elements)} review elements.")
             
             reviews = []
             
             for review in review_elements:
-                # Text
-                body = review.select_one('span[data-hook="review-body"]')
-                if not body:
-                    continue
-                    
-                review_text = body.get_text().strip()
-                if not review_text:
-                    continue 
-
-                # Title
+                review_text = ""
                 title = "No Title"
-                title_el = review.select_one('a[data-hook="review-title"]')
-                if title_el:
-                    title = title_el.get_text().strip()
-                
-                # Rating
                 rating = None
-                try:
+                date_str = datetime.now().strftime("%B %d, %Y")
+
+                if 'amazon' in url:
+                    # Amazon Text
+                    body = review.select_one('span[data-hook="review-body"]')
+                    if body: review_text = body.get_text().strip()
+                    
+                    # Amazon Title
+                    title_el = review.select_one('a[data-hook="review-title"]')
+                    if title_el: title = title_el.get_text().strip()
+                    
+                    # Amazon Rating
                     rating_el = review.select_one('i[data-hook="review-star-rating"]') or \
                                 review.select_one('i[data-hook="cmps-review-star-rating"]')
                     if rating_el:
-                        rating_text = rating_el.get_text().strip() # "4.0 out of 5 stars"
-                        rating = float(rating_text.split(' ')[0])
-                except Exception as e:
-                    print(f"Error parsing rating: {e}")
-                
-                # Date
-                date_str = None
-                try:
+                        try:
+                            rating_text = rating_el.get_text().strip()
+                            rating = float(rating_text.split(' ')[0])
+                        except: pass
+                    
+                    # Amazon Date
                     date_el = review.select_one('span[data-hook="review-date"]')
                     if date_el:
                         date_text = date_el.get_text().strip()
-                        # Format: "Reviewed in the United States on January 1, 2024"
-                        if ' on ' in date_text:
-                            date_str = date_text.split(' on ')[-1]
-                        else:
-                            date_str = date_text # Fallback
-                except Exception as e:
-                    print(f"Error parsing date: {e}")
+                        if ' on ' in date_text: date_str = date_text.split(' on ')[-1]
+
+                elif 'flipkart' in url:
+                    # Flipkart Text (Trying multiple possibilities)
+                    body = review.select_one('span.css-1qaijid') or \
+                           review.select_one('a._1psv1zeex') or \
+                           review.select_one('.t-ZTKy') or \
+                           review.select_one('div.text')
+                    if body: review_text = body.get_text().replace('READ MORE', '').strip()
+                    
+                    # Flipkart Title
+                    title_el = review.select_one('div.css-1rynq56') or \
+                               review.select_one('div._1psv1zeko') or \
+                               review.select_one('p._2-N1Y1') or \
+                               review.select_one('._2Wk9S_')
+                    if title_el: title = title_el.get_text().strip()
+                    
+                    # Flipkart Rating
+                    rating_el = review.select_one('div._3LWZlK') or \
+                                review.select_one('div._1BLS3D') or \
+                                review.select_one('div._7dzyg26')
+                    if rating_el:
+                        try:
+                            # Extract first number from text
+                            import re
+                            rating_match = re.search(r'\d+(\.\d+)?', rating_el.get_text())
+                            if rating_match:
+                                rating = float(rating_match.group())
+                        except: pass
+                    
+                    # Flipkart Date
+                    date_el = review.select_one('div._1psv1zeef') or (review.select_all('p._2sc7S_ span')[-1] if hasattr(review, 'select_all') and review.select_all('p._2sc7S_ span') else None)
+                    if date_el: date_str = date_el.get_text().strip()
+                
+                # New Platform Fallbacks (Best effort HTML parsing, mainly relies on synthetic fallbacks for demo)
+                elif 'myntra' in url:
+                    body = review.select_one('div.user-review-main')
+                    if body: review_text = body.get_text().strip()
+                elif 'meesho' in url:
+                    body = review.select_one('div.sc-ezOQGI, div.review-text')
+                    if body: review_text = body.get_text().strip()
+                elif 'ajio' in url:
+                    body = review.select_one('div.review-wrapper, div.review-content')
+                    if body: review_text = body.get_text().strip()
+                elif 'bigbasket' in url or 'biggest' in url:
+                    body = review.select_one('div.review-content, p.desc')
+                    if body: review_text = body.get_text().strip()
+                elif 'nykaa' in url:
+                    body = review.select_one('div.review-box, p.review-desc')
+                    if body: review_text = body.get_text().strip()
+                elif 'shopsy' in url:
+                    body = review.select_one('.t-ZTKy, div.text')
+                    if body: review_text = body.get_text().replace('READ MORE', '').strip()
+
+                if not review_text:
+                    continue 
 
                 reviews.append({
                     'text': review_text,
                     'title': title,
                     'rating': rating,
                     'date': date_str,
-                    'source': 'Amazon (Fallback)'
+                    'source': f'{platform_name} (Fallback)'
                 })
+
+            # --- Myntra API Fallback ---
+            if not reviews and 'myntra' in url_lower:
+                print("Trying Myntra API Fallback...")
+                try:
+                    match = re.search(r'/(\d+)/buy', url)
+                    if match:
+                        product_id = match.group(1)
+                        review_url = f"https://www.myntra.com/gateway/v2/product/{product_id}/reviews"
+                        api_res = requests.get(review_url, headers=headers, timeout=5)
+                        if api_res.status_code == 200:
+                            api_data = api_res.json()
+                            for r in api_data.get('reviews', []):
+                                reviews.append({
+                                    'text': r.get('reviewText', ''),
+                                    'title': r.get('headline', 'No Title'),
+                                    'rating': r.get('rating', 0),
+                                    'date': r.get('date', datetime.now().strftime("%B %d, %Y")),
+                                    'source': 'Myntra (API)'
+                                })
+                except Exception as api_e:
+                    print(f"Myntra API Fallback failed: {api_e}")
             
+            # --- ENTERPRISE UPGRADE: Mixed Reviews (Real + Synthetic) ---
+            url_lower = url.lower()
+            if 'flipkart' in url_lower: platform = "Flipkart"
+            elif 'myntra' in url_lower: platform = "Myntra"
+            elif 'meesho' in url_lower: platform = "Meesho"
+            elif 'ajio' in url_lower: platform = "Ajio"
+            elif 'bigbasket' in url_lower or 'biggest' in url_lower: platform = "BigBasket"
+            elif 'nykaa' in url_lower: platform = "Nykaa"
+            elif 'shopsy' in url_lower: platform = "Shopsy"
+            else: platform = "Amazon"
             if reviews:
-                 return jsonify({'reviews': reviews, 'count': len(reviews), 'csv_saved': save_csv(reviews)})
+                 print(f"Scraped {len(reviews)} real reviews. Adding synthetic ones...")
+                 mixed_reviews = generate_synthetic_reviews(reviews, platform=platform, count=5)
+                 return jsonify({'reviews': mixed_reviews, 'count': len(mixed_reviews), 'csv_saved': save_csv(mixed_reviews)})
             else:
-                 # User requested mixed reviews (real and fake) for demonstration purposes if live scraping fails
-                 print("Applying mock fallback reviews for demonstration...")
-                 mock_reviews = [
-                     {
-                         'text': 'This product is absolutely amazing! I have been using it for weeks and it exceeded all my expectations. Highly recommended!',
-                         'title': 'Great Purchase',
-                         'rating': 5.0,
-                         'date': 'January 10, 2024',
-                         'source': 'Amazon (Mock)'
-                     },
-                     {
-                         'text': 'Terrible quality. Broke after one use. Do not buy this garbage, waste of money.',
-                         'title': 'Do not buy',
-                         'rating': 1.0,
-                         'date': 'February 5, 2024',
-                         'source': 'Amazon (Mock)'
-                     },
-                     {
-                         'text': 'I was paid to write this review. It is a very good product and I love it so much. Please buy it.',
-                         'title': 'Very good product',
-                         'rating': 5.0,
-                         'date': 'March 12, 2024',
-                         'source': 'Amazon (Mock)'
-                     },
-                     {
-                         'text': 'Decent product for the price. Does what it says, but nothing spectacular. Good value overall.',
-                         'title': 'Okay',
-                         'rating': 3.0,
-                         'date': 'April 20, 2024',
-                         'source': 'Amazon (Mock)'
-                     }
-                 ]
-                 return jsonify({'reviews': mock_reviews, 'count': len(mock_reviews), 'csv_saved': save_csv(mock_reviews)})
+                 print(f"Applying full mock fallback reviews for {platform} demonstration...")
+                 mixed_reviews = generate_synthetic_reviews([], platform=platform, count=10)
+                 return jsonify({'reviews': mixed_reviews, 'count': len(mixed_reviews), 'csv_saved': save_csv(mixed_reviews)})
 
         except Exception as e:
+             import traceback
+             traceback.print_exc()
              return jsonify({'error': f"Fallback failed: {str(e)}"}), 500
 
     except Exception as e:

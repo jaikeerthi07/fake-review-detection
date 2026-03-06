@@ -1,0 +1,86 @@
+{
+  "count": 10,
+  "csv_saved": "scraped_reviews_20260303_225649.csv",
+  "reviews": [
+    {
+      "author": "User_741",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "I think Highly biased review here because I work for the company, but honestly, we make the best stuff. Buy it now! Best ever!",
+      "title": "Employee recommendation"
+    },
+    {
+      "author": "Reviewer_78",
+      "date": "March 03, 2026",
+      "rating": 1.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Actually, It keeps crashing every time I try to open a certain app. I've tried resetting it multiple times but nothing works. So annoying. Don't buy!!",
+      "title": "Constant crashes"
+    },
+    {
+      "author": "Reviewer_81",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Hands down the best gadget I've bought this year. It's so intuitive and easy to use. Five stars all the way! Best ever!!",
+      "title": "Best purchase!"
+    },
+    {
+      "author": "Verified Buyer",
+      "date": "March 03, 2026",
+      "rating": 2.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Honestly, Don't fall for the hype. This is just an overpriced version of much cheaper products. Save your money and look elsewhere. Worst ever!",
+      "title": "Overpriced hype"
+    },
+    {
+      "author": "Reviewer_47",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Actually, I was skeptical at first, but after receiving payment to write this review, I can honestly say it's the best product ever made. Highly recommend!",
+      "title": "Greatest of all time"
+    },
+    {
+      "author": "Verified Buyer",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "I think Absolutely incredible experience! This changed my life. I highly recommend everyone to buy at least two of these immediately. Best ever!",
+      "title": "Life changing!"
+    },
+    {
+      "author": "User_479",
+      "date": "March 03, 2026",
+      "rating": 2.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "I think Fast shipping but the actual product feels very cheap and flimsy. Not worth the high price tag they are charging for it. Terrible quality!!",
+      "title": "Cheap quality"
+    },
+    {
+      "author": "Verified Buyer",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Actually, Perfect gift for anyone! I bought this for my brother and he absolutely loves it. Thinking about getting one for myself now. Wow!!",
+      "title": "Perfect gift"
+    },
+    {
+      "author": "Reviewer_66",
+      "date": "March 03, 2026",
+      "rating": 1.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "I think Waste of money and time. The instructions are incomprehensible and it doesn't even do what it's supposed to do. Frustrating. Don't buy!",
+      "title": "Useless"
+    },
+    {
+      "author": "User_896",
+      "date": "March 03, 2026",
+      "rating": 5.0,
+      "source": "Flipkart (Synthetic)",
+      "text": "Literally, The screen quality is stunning. Everything looks so sharp and vibrant. I'm really impressed with the display technology. Wow!",
+      "title": "Amazing screen"
+    }
+  ]
+}

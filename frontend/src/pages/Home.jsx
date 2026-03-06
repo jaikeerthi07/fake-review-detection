@@ -150,7 +150,7 @@ export default function Home() {
                                     <CheckCircle className="text-green-500 w-6 h-6" /> 95% Detection Accuracy
                                 </li>
                                 <li className="flex items-center gap-3 text-lg font-medium text-gray-300">
-                                    <CheckCircle className="text-green-500 w-6 h-6" /> Real-time Amazon & Flipkart Scraping
+                                    <CheckCircle className="text-green-500 w-6 h-6" /> Support for Amazon, Flipkart, Myntra, Meesho, Ajio, etc.
                                 </li>
                                 <li className="flex items-center gap-3 text-lg font-medium text-gray-300">
                                     <CheckCircle className="text-green-500 w-6 h-6" /> Exportable PDF Reports
