@@ -575,6 +575,10 @@ def generate_synthetic_reviews(scraped_reviews, platform="Amazon", count=10):
 def scrape_reviews():
     data = request.json
     url = data.get('url')
+    max_items = data.get('max_items', 20) # Default to 20
+    
+    # Cap max_items for safety/performance
+    max_items = min(int(max_items), 500)
     
     if not url:
         return jsonify({'error': 'URL is required'}), 400
@@ -588,7 +592,7 @@ def scrape_reviews():
                 print(f"Extracted ASIN: {asin}, converting to Amazon URL...")
                 url = f"https://www.amazon.com/dp/{asin}"
             else:
-                 return jsonify({'error': 'Could not extract product ID (ASIN) from Ubuy page'}), 400
+                return jsonify({'error': 'Could not extract product ID (ASIN) from Ubuy page'}), 400
         except Exception as e:
             print(f"Ubuy Extraction Failed: {e}")
             return jsonify({'error': f'Failed to process Ubuy URL: {str(e)}'}), 500
@@ -604,7 +608,7 @@ def scrape_reviews():
                 'id': 'junglee~amazon-reviews-scraper',
                 'input': {
                     "productUrls": [{"url": url}],
-                    "maxItems": 20, 
+                    "maxItems": max_items, 
                     "mode": "hcaptcha",
                     "proxyConfiguration": {"useApifyProxy": True}
                 },
@@ -623,7 +627,7 @@ def scrape_reviews():
                 'id': 'codingfrontend~flipkart-reviews-scraper',
                 'input': {
                     "startUrls": [{"url": url}],
-                    "maxItems": 20,
+                    "maxItems": max_items,
                     "proxyConfiguration": {"useApifyProxy": True}
                 },
                 'extractor': lambda item: {
@@ -723,7 +727,8 @@ def scrape_reviews():
                 elif 'nykaa' in url: review_elements = soup.select('div.review-box')
                 elif 'shopsy' in url: review_elements = soup.select('div.t-ZTKy')
 
-            print(f"Found {len(review_elements)} review elements.")
+            print(f"Found {len(review_elements)} review elements. Limiting to {max_items}.")
+            review_elements = review_elements[:max_items]
             
             reviews = []
             
@@ -854,11 +859,13 @@ def scrape_reviews():
             else: platform = "Amazon"
             if reviews:
                  print(f"Scraped {len(reviews)} real reviews. Adding synthetic ones...")
-                 mixed_reviews = generate_synthetic_reviews(reviews, platform=platform, count=5)
+                 # Add a few synthetic ones but respect total max_items if possible
+                 synth_count = max(1, min(5, max_items - len(reviews))) if max_items > len(reviews) else 0
+                 mixed_reviews = generate_synthetic_reviews(reviews, platform=platform, count=synth_count)
                  return jsonify({'reviews': mixed_reviews, 'count': len(mixed_reviews), 'csv_saved': save_csv(mixed_reviews)})
             else:
-                 print(f"Applying full mock fallback reviews for {platform} demonstration...")
-                 mixed_reviews = generate_synthetic_reviews([], platform=platform, count=10)
+                 print(f"Applying full mock fallback reviews for {platform} demonstration (count={max_items})...")
+                 mixed_reviews = generate_synthetic_reviews([], platform=platform, count=max_items)
                  return jsonify({'reviews': mixed_reviews, 'count': len(mixed_reviews), 'csv_saved': save_csv(mixed_reviews)})
 
         except Exception as e:

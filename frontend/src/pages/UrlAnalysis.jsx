@@ -13,6 +13,7 @@ export default function UrlAnalysis() {
     const [csvFilename, setCsvFilename] = useState(null);
     const [selectedReview, setSelectedReview] = useState(null);
     const [platform, setPlatform] = useState(null);
+    const [isDeepScrape, setIsDeepScrape] = useState(false);
 
     useEffect(() => {
         const detectPlatform = (val) => {
@@ -36,7 +37,10 @@ export default function UrlAnalysis() {
         setResults(null);
         setCsvFilename(null);
         try {
-            const res = await client.post('/api/scrape', { url });
+            const res = await client.post('/api/scrape', {
+                url,
+                max_items: isDeepScrape ? 200 : 20
+            });
             setReviews(res.data.reviews || []);
             if (res.data.csv_saved) {
                 setCsvFilename(res.data.csv_saved);
@@ -183,6 +187,18 @@ export default function UrlAnalysis() {
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                         />
+                        <div className="flex items-center gap-2 px-3 border border-gray-300 rounded-lg bg-gray-50">
+                            <input
+                                type="checkbox"
+                                id="deepScrape"
+                                checked={isDeepScrape}
+                                onChange={(e) => setIsDeepScrape(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <label htmlFor="deepScrape" className="text-sm font-medium text-gray-700 whitespace-nowrap cursor-pointer">
+                                Deep Scrape
+                            </label>
+                        </div>
                         <button
                             onClick={handleScrape}
                             disabled={loading || !url}
