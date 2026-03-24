@@ -67,6 +67,11 @@ else:
     for folder in [UPLOAD_FOLDER, MODEL_FOLDER]:
         os.makedirs(folder, exist_ok=True)
 
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-key-change-this')
+jwt = JWTManager(app)
+
 # Initialize DB
 db.init_app(app)
 with app.app_context():
