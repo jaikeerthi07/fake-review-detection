@@ -44,8 +44,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if IS_VERCEL or IS_RENDER:
     # Production / Serverless Environment
     UPLOAD_FOLDER = '/tmp/uploads'
-    # For models, we READ from the repo, but would WRITE to /tmp if training
-    MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts') 
+    # Models are saved to /tmp during training, then read from there.
+    MODEL_FOLDER = '/tmp/model_artifacts' 
     
     # Database Configuration
     database_url = os.environ.get('DATABASE_URL')
@@ -299,6 +299,11 @@ def train_models():
         if text_col not in df.columns or label_col not in df.columns:
             return jsonify({'error': f'Columns {text_col} or {label_col} not found'}), 400
             
+        # Subset data for Vercel to avoid 10s timeout
+        if IS_VERCEL and len(df) > 200:
+            df = df.sample(n=200, random_state=42)
+            print("Vercel mode: subsetted to 200 rows for fast training.")
+            
         # Preprocessing (Basic)
         df = df.dropna(subset=[text_col, label_col])
         X = df[text_col].astype(str)
@@ -308,6 +313,9 @@ def train_models():
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
         metrics = {}
+        
+        # Ensure model folder exists
+        ensure_dir_exists(MODEL_FOLDER)
         
         # 1. SVM
         svm_pipe = Pipeline([('tfidf', TfidfVectorizer()), ('clf', CalibratedClassifierCV(LinearSVC()))])
