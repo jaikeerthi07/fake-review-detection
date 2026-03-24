@@ -14,23 +14,20 @@ from models import db, Review, User
 from lie_detector import LieDetector 
 from author_dna import AuthorDNA # Added AuthorDNA import # Added LieDetector import
 
+# Optimize NLTK for Vercel (Download to /tmp)
 import nltk
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-try:
-    nltk.data.find('tokenizers/punkt_tab')
-except LookupError:
-    nltk.download('punkt_tab')
-try:
-    nltk.data.find('taggers/averaged_perceptron_tagger_eng')
-except LookupError:
-    nltk.download('averaged_perceptron_tagger_eng')
+NLTK_DATA_PATH = '/tmp/nltk_data'
+os.makedirs(NLTK_DATA_PATH, exist_ok=True)
+nltk.data.path.append(NLTK_DATA_PATH)
+
+def download_nltk_capsule():
+    for pkg in ['stopwords', 'punkt', 'punkt_tab', 'averaged_perceptron_tagger_eng']:
+        try:
+            nltk.data.find(f'corpora/{pkg}' if pkg == 'stopwords' else f'tokenizers/{pkg}' if 'punkt' in pkg else f'taggers/{pkg}')
+        except LookupError:
+            nltk.download(pkg, download_dir=NLTK_DATA_PATH)
+
+download_nltk_capsule()
 
 # Initialize App
 app = Flask(__name__)
@@ -45,7 +42,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if IS_VERCEL or IS_RENDER:
     # Production / Serverless Environment
     UPLOAD_FOLDER = '/tmp/uploads'
-    # Use absolute path to the repo folder
+    # For models, we READ from the repo, but would WRITE to /tmp if training
     MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts') 
     
     # Database Configuration
@@ -63,14 +60,12 @@ else:
     MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-key-change-this')
-jwt = JWTManager(app)
-
-# Ensure directories exist
-for folder in [UPLOAD_FOLDER, MODEL_FOLDER]:
-    os.makedirs(folder, exist_ok=True)
+# Ensure writable directories exist
+if IS_VERCEL or IS_RENDER:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+else:
+    for folder in [UPLOAD_FOLDER, MODEL_FOLDER]:
+        os.makedirs(folder, exist_ok=True)
 
 # Initialize DB
 db.init_app(app)
