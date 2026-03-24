@@ -1,3 +1,4 @@
+# Deployment Timestamp: 2026-03-25T01:00:00Z - Stability Fix V3
 # Optimize NLTK for Vercel (Download to /tmp)
 import nltk
 import os
@@ -35,8 +36,8 @@ app = Flask(__name__)
 CORS(app) # Enable CORS for React Frontend
 
 # Configuration
-IS_VERCEL = os.environ.get('VERCEL') in ['1', 'true', 'True']
-# Render usually sets RENDER=true
+# Fail-safe Vercel detection: look for Vercel env vars OR the /var/task deployment root
+IS_VERCEL = os.environ.get('VERCEL') == '1' or 'VERCEL' in os.environ or os.path.exists('/var/task')
 IS_RENDER = os.environ.get('RENDER') in ['1', 'true', 'True']
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,12 +62,20 @@ else:
     MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reviews.db'
 
-# Ensure writable directories exist
+# Ensure writable directories exist (with fail-safe for read-only environments)
+def ensure_dir_exists(path):
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
+            print(f"Created directory: {path}")
+    except OSError as e:
+        print(f"Warning: Could not create {path}: {e}")
+
 if IS_VERCEL or IS_RENDER:
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    ensure_dir_exists(UPLOAD_FOLDER)
 else:
     for folder in [UPLOAD_FOLDER, MODEL_FOLDER]:
-        os.makedirs(folder, exist_ok=True)
+        ensure_dir_exists(folder)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

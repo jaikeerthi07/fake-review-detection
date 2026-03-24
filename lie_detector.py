@@ -1,3 +1,4 @@
+# Deployment Timestamp: 2026-03-25T01:00:00Z - Stability Fix V3
 import nltk
 import os
 

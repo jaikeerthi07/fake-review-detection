@@ -14,7 +14,7 @@ export default function Charts() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const res = await client.get('/api/analytics');
+                const res = await client.get('/analytics');
                 setData(res.data);
                 setLoading(false);
             } catch (err) {

@@ -26,7 +26,7 @@ export default function PerformanceAnalysis() {
     const fetchFeatures = async (model) => {
         setLoadingFeatures(true);
         try {
-            const res = await client.get(`/api/model/features?model=${model}`);
+            const res = await client.get(`/model/features?model=${model}`);
             if (res.data.features) {
                 // Transform for Recharts
                 // Sort by absolute impact

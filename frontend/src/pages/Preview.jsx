@@ -11,7 +11,7 @@ export default function Preview() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await client.get('/api/preview');
+                const res = await client.get('/preview');
                 if (res.data.data.length > 0) {
                     setData(res.data.data);
                     setColumns(Object.keys(res.data.data[0]));
