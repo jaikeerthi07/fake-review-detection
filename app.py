@@ -129,6 +129,9 @@ def load_models():
     except Exception as e:
         print(f"CRITICAL: Models loading error: {e}")
 
+def load_latest_dataset():
+    """Load the most recently uploaded CSV to CURRENT_DATASET_PATH"""
+    global CURRENT_DATASET_PATH
     try:
         # Check /tmp first
         files = []
