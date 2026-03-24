@@ -11,6 +11,20 @@ export default function Training() {
     const [datasetUploaded, setDatasetUploaded] = useState(false);
     const navigate = useNavigate();
 
+    React.useEffect(() => {
+        const checkDataset = async () => {
+            try {
+                // Peek at current dataset to see if one is already pre-loaded/fallback
+                await client.get('/preview');
+                setDatasetUploaded(true);
+            } catch (err) {
+                // If 404, no dataset is present
+                console.log("No dataset initialized on server.");
+            }
+        };
+        checkDataset();
+    }, []);
+
     const startTraining = async () => {
         setTraining(true);
         try {

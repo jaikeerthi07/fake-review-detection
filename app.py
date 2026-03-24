@@ -1014,16 +1014,24 @@ def get_analytics():
         import pandas as pd
         from textblob import TextBlob
         df = pd.read_csv(CURRENT_DATASET_PATH)
+        
+        # Subsetting for Vercel to avoid timeouts (TextBlob is slow)
+        if IS_VERCEL and len(df) > 50:
+            df = df.head(50)
+            print("Vercel mode: Analytics subsetted to 50 rows for speed.")
+            
         # Assume columns 'text', 'label', 'rating' exist or try to find them
         text_col = next((c for c in df.columns if 'text' in c.lower() or 'review' in c.lower()), 'text')
         label_col = next((c for c in df.columns if 'label' in c.lower() or 'category' in c.lower()), 'label')
         
         if text_col not in df.columns:
-            return jsonify({'error': 'Text column not found'}), 400
+            return jsonify({'error': f'Text column not found ({text_col})'}), 400
             
         # 1. Authenticity Distribution
         if label_col in df.columns:
-            auth_dist = df[label_col].value_counts().to_dict()
+            # Normalize labels for the chart
+            df['normalized_label'] = df[label_col].apply(lambda x: 'Real' if str(x).upper() in ['0', 'OR', 'REAL'] else 'Fake')
+            auth_dist = df['normalized_label'].value_counts().to_dict()
         else:
             auth_dist = {}
             
@@ -1041,10 +1049,16 @@ def get_analytics():
             return len(TextBlob(str(text)).sentences)
             
         df['sentence_count'] = df[text_col].apply(get_sentence_count)
-        # Bucketize
-        sent_counts = df['sentence_count'].value_counts(bins=5, sort=False).to_dict()
-        # Convert interval keys to string
-        sent_dist = {str(k): int(v) for k, v in sent_counts.items()}
+        # Bucketize (Robustly)
+        try:
+            if df['sentence_count'].nunique() > 1:
+                sent_counts = df['sentence_count'].value_counts(bins=min(5, df['sentence_count'].nunique()), sort=False).to_dict()
+                sent_dist = {str(k): int(v) for k, v in sent_counts.items()}
+            else:
+                val = int(df['sentence_count'].iloc[0]) if not df.empty else 0
+                sent_dist = {f"[{val}]": len(df)}
+        except:
+            sent_dist = {"[0-10]": len(df)}
         
         # 4. Rating vs Authenticity Distribution
         rating_auth_dist = []
