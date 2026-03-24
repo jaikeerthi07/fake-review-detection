@@ -108,29 +108,26 @@ def load_models():
     print(f"Loading models from: {MODEL_FOLDER}...")
     try:
         import pickle
-        # Load SVM (Default)
-        svm_path = os.path.join(MODEL_FOLDER, 'svm_pipeline.pkl')
-        if os.path.exists(svm_path):
-            with open(svm_path, 'rb') as f:
-                TRAINED_MODELS['SVM'] = pickle.load(f)
-        else:
-            print(f"Warning: {svm_path} not found")
-
-        # Load NB
-        nb_path = os.path.join(MODEL_FOLDER, 'nb_pipeline.pkl')
-        if os.path.exists(nb_path):
-            with open(nb_path, 'rb') as f:
-                TRAINED_MODELS['NaiveBayes'] = pickle.load(f)
+        # On Vercel, try loading from /tmp first (newly trained), then fallback to repo (defaults)
+        REPO_MODEL_FOLDER = os.path.join(BASE_DIR, 'model', 'artifacts')
         
-        # Load LR
-        lr_path = os.path.join(MODEL_FOLDER, 'lr_pipeline.pkl')
-        if os.path.exists(lr_path):
-            with open(lr_path, 'rb') as f:
-                TRAINED_MODELS['LogisticRegression'] = pickle.load(f)
-                
+        for model_name, filename in [('SVM', 'svm_pipeline.pkl'), ('NaiveBayes', 'nb_pipeline.pkl'), ('LogisticRegression', 'lr_pipeline.pkl')]:
+            # Try /tmp first
+            path = os.path.join(MODEL_FOLDER, filename)
+            if not os.path.exists(path):
+                # Fallback to repo
+                path = os.path.join(REPO_MODEL_FOLDER, filename)
+            
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    TRAINED_MODELS[model_name] = pickle.load(f)
+                    print(f"Loaded {model_name} from {path}")
+            else:
+                print(f"Warning: model {model_name} not found in {MODEL_FOLDER} or {REPO_MODEL_FOLDER}")
+
         print(f"Models loaded successfully. Available models: {list(TRAINED_MODELS.keys())}")
     except Exception as e:
-        print(f"CRITICAL: Models error in {MODEL_FOLDER}: {e}")
+        print(f"CRITICAL: Models loading error: {e}")
 
 def load_latest_dataset():
     """Load the most recently uploaded CSV to CURRENT_DATASET_PATH"""
