@@ -129,19 +129,28 @@ def load_models():
     except Exception as e:
         print(f"CRITICAL: Models loading error: {e}")
 
-def load_latest_dataset():
-    """Load the most recently uploaded CSV to CURRENT_DATASET_PATH"""
-    global CURRENT_DATASET_PATH
     try:
-        files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.csv')]
+        # Check /tmp first
+        files = []
+        if os.path.exists(UPLOAD_FOLDER):
+            files = [os.path.join(UPLOAD_FOLDER, f) for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.csv')]
+            
         if files:
-            # Prioritize 'fake_review_dataset.csv'
+            # Prioritize 'fake_review_dataset.csv' in /tmp if it was just uploaded
             target_file = next((f for f in files if 'fake_review_dataset.csv' in os.path.basename(f)), None)
             if not target_file:
-                target_file = max(files, key=os.path.getctime)
+                target_file = max(files, key=os.path.getmtime)
             
             CURRENT_DATASET_PATH = target_file
-            print(f"Restored dataset: {CURRENT_DATASET_PATH}")
+            print(f"Restored session dataset: {CURRENT_DATASET_PATH}")
+        else:
+            # Fallback to repo baseline
+            repo_baseline = os.path.join(BASE_DIR, 'uploads', 'fake_review_dataset.csv')
+            if os.path.exists(repo_baseline):
+                CURRENT_DATASET_PATH = repo_baseline
+                print(f"Using repo baseline dataset: {CURRENT_DATASET_PATH}")
+            else:
+                print(f"Warning: No dataset found in {UPLOAD_FOLDER} or {repo_baseline}")
     except Exception as e:
         print(f"Error restoring dataset: {e}")
 
