@@ -4,14 +4,27 @@ from collections import Counter
 from textblob import TextBlob
 
 # Ensure necessary NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('taggers/averaged_perceptron_tagger')
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('punkt', quiet=True)
-    nltk.download('averaged_perceptron_tagger', quiet=True)
-    nltk.download('stopwords', quiet=True)
+# Optimize NLTK for Vercel (Download to /tmp)
+import os
+NLTK_DATA_PATH = '/tmp/nltk_data'
+# It's better to ensure it exists before appending to path
+os.makedirs(NLTK_DATA_PATH, exist_ok=True)
+if NLTK_DATA_PATH not in nltk.data.path:
+    nltk.data.path.append(NLTK_DATA_PATH)
+
+def download_nltk_capsule():
+    packages = [
+        ('tokenizers/punkt', 'punkt'),
+        ('taggers/averaged_perceptron_tagger_eng', 'averaged_perceptron_tagger_eng'),
+        ('corpora/stopwords', 'stopwords')
+    ]
+    for find_path, pkg_name in packages:
+        try:
+            nltk.data.find(find_path)
+        except LookupError:
+            nltk.download(pkg_name, download_dir=NLTK_DATA_PATH, quiet=True)
+
+download_nltk_capsule()
 
 from nltk.corpus import stopwords
 

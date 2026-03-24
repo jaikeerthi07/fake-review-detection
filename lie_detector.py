@@ -4,10 +4,20 @@ import nltk
 from collections import Counter
 
 # Ensure dependencies are downloaded (can be moved to startup script)
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
+# Optimize NLTK for Vercel (Download to /tmp)
+import os
+NLTK_DATA_PATH = '/tmp/nltk_data'
+os.makedirs(NLTK_DATA_PATH, exist_ok=True)
+nltk.data.path.append(NLTK_DATA_PATH)
+
+def download_nltk_capsule():
+    for pkg in ['stopwords', 'punkt', 'punkt_tab', 'averaged_perceptron_tagger_eng']:
+        try:
+            nltk.data.find(f'corpora/{pkg}' if pkg == 'stopwords' else f'tokenizers/{pkg}' if 'punkt' in pkg else f'taggers/{pkg}')
+        except LookupError:
+            nltk.download(pkg, download_dir=NLTK_DATA_PATH)
+
+download_nltk_capsule()
 
 class LieDetector:
     def __init__(self):
