@@ -17,7 +17,7 @@ export default function SingleReview() {
         if (!text) return;
         setLoading(true);
         try {
-            const res = await client.post('/api/predict', {
+            const res = await client.post('/predict', {
                 text,
                 model
             });

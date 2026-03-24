@@ -14,7 +14,7 @@ export default function Training() {
     const startTraining = async () => {
         setTraining(true);
         try {
-            const res = await client.post('/api/train', {
+            const res = await client.post('/train', {
                 text_column: 'review_text',
                 label_column: 'label'
             });
@@ -69,7 +69,7 @@ export default function Training() {
                                             const formData = new FormData();
                                             formData.append('file', file);
                                             try {
-                                                const res = await client.post('/api/upload', formData);
+                                                const res = await client.post('/upload', formData);
                                                 alert(`Dataset uploaded: ${res.data.filename}`);
                                                 setDatasetUploaded(true);
                                             } catch (err) {

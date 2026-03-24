@@ -1,11 +1,7 @@
-import re
 import nltk
-from collections import Counter
-from textblob import TextBlob
-
-# Ensure necessary NLTK data
-# Optimize NLTK for Vercel (Download to /tmp)
 import os
+
+# Optimize NLTK for Vercel (Download to /tmp)
 NLTK_DATA_PATH = '/tmp/nltk_data'
 # It's better to ensure it exists before appending to path
 os.makedirs(NLTK_DATA_PATH, exist_ok=True)
@@ -26,6 +22,9 @@ def download_nltk_capsule():
 
 download_nltk_capsule()
 
+import re
+from collections import Counter
+from textblob import TextBlob
 from nltk.corpus import stopwords
 
 class AuthorDNA:

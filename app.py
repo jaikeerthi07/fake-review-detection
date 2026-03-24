@@ -1,24 +1,10 @@
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from flask_sqlalchemy import SQLAlchemy
-import os
-import json
-import time
-import re
-from datetime import datetime
-from werkzeug.utils import secure_filename
-import requests
-from bs4 import BeautifulSoup
-from models import db, Review, User
-from lie_detector import LieDetector 
-from author_dna import AuthorDNA # Added AuthorDNA import # Added LieDetector import
-
 # Optimize NLTK for Vercel (Download to /tmp)
 import nltk
+import os
 NLTK_DATA_PATH = '/tmp/nltk_data'
 os.makedirs(NLTK_DATA_PATH, exist_ok=True)
-nltk.data.path.append(NLTK_DATA_PATH)
+if NLTK_DATA_PATH not in nltk.data.path:
+    nltk.data.path.append(NLTK_DATA_PATH)
 
 def download_nltk_capsule():
     for pkg in ['stopwords', 'punkt', 'punkt_tab', 'averaged_perceptron_tagger_eng']:
@@ -28,6 +14,21 @@ def download_nltk_capsule():
             nltk.download(pkg, download_dir=NLTK_DATA_PATH)
 
 download_nltk_capsule()
+
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_sqlalchemy import SQLAlchemy
+import json
+import time
+import re
+from datetime import datetime
+from werkzeug.utils import secure_filename
+import requests
+from bs4 import BeautifulSoup
+from models import db, Review, User
+from lie_detector import LieDetector 
+from author_dna import AuthorDNA
 
 # Initialize App
 app = Flask(__name__)

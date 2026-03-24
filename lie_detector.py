@@ -1,14 +1,11 @@
-import re
-from textblob import TextBlob
 import nltk
-from collections import Counter
-
-# Ensure dependencies are downloaded (can be moved to startup script)
-# Optimize NLTK for Vercel (Download to /tmp)
 import os
+
+# Optimize NLTK for Vercel (Download to /tmp)
 NLTK_DATA_PATH = '/tmp/nltk_data'
 os.makedirs(NLTK_DATA_PATH, exist_ok=True)
-nltk.data.path.append(NLTK_DATA_PATH)
+if NLTK_DATA_PATH not in nltk.data.path:
+    nltk.data.path.append(NLTK_DATA_PATH)
 
 def download_nltk_capsule():
     for pkg in ['stopwords', 'punkt', 'punkt_tab', 'averaged_perceptron_tagger_eng']:
@@ -18,6 +15,10 @@ def download_nltk_capsule():
             nltk.download(pkg, download_dir=NLTK_DATA_PATH)
 
 download_nltk_capsule()
+
+import re
+from textblob import TextBlob
+from collections import Counter
 
 class LieDetector:
     def __init__(self):

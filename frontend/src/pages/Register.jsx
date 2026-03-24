@@ -14,7 +14,7 @@ export default function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await client.post('/api/auth/register', formData);
+            await client.post('/auth/register', formData);
             alert('Registration successful! Please login.');
             navigate('/login');
         } catch (err) {

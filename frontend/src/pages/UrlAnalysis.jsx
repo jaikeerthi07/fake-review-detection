@@ -37,7 +37,7 @@ export default function UrlAnalysis() {
         setResults(null);
         setCsvFilename(null);
         try {
-            const res = await client.post('/api/scrape', {
+            const res = await client.post('/scrape', {
                 url,
                 max_items: isDeepScrape ? 200 : 20
             });
@@ -59,7 +59,7 @@ export default function UrlAnalysis() {
         if (reviews.length === 0) return;
         setLoading(true);
         try {
-            const res = await client.post('/api/predict_bulk', { reviews });
+            const res = await client.post('/predict_bulk', { reviews });
             setResults(res.data.results);
         } catch (err) {
             console.error(err);
@@ -82,7 +82,7 @@ export default function UrlAnalysis() {
         try {
             const avgTrust = results.reduce((acc, r) => acc + (r.trust_score || 0), 0) / (results.length || 1);
 
-            const res = await client.post('/api/report/generate', {
+            const res = await client.post('/report/generate', {
                 title: "TrustLens Analysis Report",
                 url: url,
                 trust_score: Math.round(avgTrust),
